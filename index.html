@@ -1,1763 +1,1772 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
-import * as THREE from 'three';
-import {
-Dumbbell, Target, Users, MapPin, Phone, MessageCircle,
-ChevronRight, Star, Clock, Activity, Award, Mail,
-Menu, X, CheckCircle, ArrowLeft, Zap, Shield, Crown,
-Instagram, Facebook, Youtube, Flame, Compass, Heart,
-Sparkles, Calendar, HelpCircle, Check, Music, Volume2, VolumeX,
-ArrowRight, Award as Trophy, User, ArrowUpRight
-} from 'lucide-react';
-
-function ThreeDumbbellCanvas({ activeColor = "#dc2626" }) {
-const mountRef = useRef(null);
-
-useEffect(() => {
-if (!mountRef.current) return;
-
-const container = mountRef.current;
-const width = container.clientWidth;
-const height = container.clientHeight;
-
-// Create scene
-const scene = new THREE.Scene();
-
-// Create camera
-const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-camera.position.z = 8;
-
-// Create renderer (transparent background to match light theme background)
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setSize(width, height);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-container.appendChild(renderer.domElement);
-
-// Create Dumbbell Model Group
-const dumbbellGroup = new THREE.Group();
-
-// Shaft (barbell handle)
-const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, 3.2, 32);
-const shaftMat = new THREE.MeshStandardMaterial({
-color: 0x475569, // Titanium Slate Gray
-metalness: 0.9,
-roughness: 0.15,
-envMapIntensity: 1.0
-});
-const shaft = new THREE.Mesh(shaftGeom, shaftMat);
-shaft.rotation.z = Math.PI / 2;
-dumbbellGroup.add(shaft);
-
-const weightColor = 0x334155; // Clean Slate-700
-const weightMat = new THREE.MeshStandardMaterial({
-color: weightColor,
-metalness: 0.8,
-roughness: 0.3
-});
-const innerRimMat = new THREE.MeshStandardMaterial({
-color: 0xdc2626, // Neon red accents
-metalness: 0.9,
-roughness: 0.1
-});
-
-// Left heavy plates
-const leftPlate1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 32), weightMat);
-leftPlate1.position.x = -1.1;
-leftPlate1.rotation.z = Math.PI / 2;
-dumbbellGroup.add(leftPlate1);
-
-const leftPlate2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.25, 32), innerRimMat);
-leftPlate2.position.x = -1.4;
-leftPlate2.rotation.z = Math.PI / 2;
-dumbbellGroup.add(leftPlate2);
-
-const leftCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16), shaftMat);
-leftCollar.position.x = -1.6;
-leftCollar.rotation.z = Math.PI / 2;
-dumbbellGroup.add(leftCollar);
-
-// Right heavy plates
-const rightPlate1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 32), weightMat);
-rightPlate1.position.x = 1.1;
-rightPlate1.rotation.z = Math.PI / 2;
-dumbbellGroup.add(rightPlate1);
-
-const rightPlate2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.25, 32), innerRimMat);
-rightPlate2.position.x = 1.4;
-rightPlate2.rotation.z = Math.PI / 2;
-dumbbellGroup.add(rightPlate2);
-
-const rightCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16), shaftMat);
-rightCollar.position.x = 1.6;
-rightCollar.rotation.z = Math.PI / 2;
-dumbbellGroup.add(rightCollar);
-
-scene.add(dumbbellGroup);
-
-const particlesCount = 120;
-const particlesGeom = new THREE.BufferGeometry();
-const positions = new Float32Array(particlesCount * 3);
-for(let i=0; i < particlesCount * 3; i++) {
-positions[i] = (Math.random() - 0.5) * 12;
-}
-particlesGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const particlesMat = new THREE.PointsMaterial({
-color: 0xdc2626, // Crimson red particles visible on light theme
-size: 0.05,
-transparent: true,
-opacity: 0.6
-});
-const particleField = new THREE.Points(particlesGeom, particlesMat);
-scene.add(particleField);
-
-// Lights optimized for Bright theme
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-scene.add(ambientLight);
-
-const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
-dirLight1.position.set(5, 5, 5);
-scene.add(dirLight1);
-
-const redSpotLight = new THREE.SpotLight(0xdc2626, 6, 15, Math.PI / 6, 0.5, 1);
-redSpotLight.position.set(-3, 3, 4);
-scene.add(redSpotLight);
-
-let mouseX = 0;
-let mouseY = 0;
-const handleMouseMove = (event) => {
-const rect = container.getBoundingClientRect();
-mouseX = ((event.clientX - rect.left) / width) * 2 - 1;
-mouseY = -((event.clientY - rect.top) / height) * 2 + 1;
-};
-window.addEventListener('mousemove', handleMouseMove);
-
-// Animation Loop
-let animationFrameId;
-const animate = () => {
-animationFrameId = requestAnimationFrame(animate);
-
-// Smooth rotations
-dumbbellGroup.rotation.y += 0.012;
-dumbbellGroup.rotation.x += 0.003;
-
-// React to mouse movement
-dumbbellGroup.rotation.y += mouseX * 0.02;
-dumbbellGroup.rotation.z = mouseY * 0.3;
-
-// Animate particles
-particleField.rotation.y += 0.001;
-particleField.rotation.x -= 0.0005;
-
-renderer.render(scene, camera);
-};
-animate();
-
-// Handle Resize
-const handleResize = () => {
-if (!container) return;
-const w = container.clientWidth;
-const h = container.clientHeight;
-camera.aspect = w / h;
-camera.updateProjectionMatrix();
-renderer.setSize(w, h);
-};
-window.addEventListener('resize', handleResize);
-
-// Clean up
-return () => {
-window.removeEventListener('mousemove', handleMouseMove);
-window.removeEventListener('resize', handleResize);
-cancelAnimationFrame(animationFrameId);
-if (container.contains(renderer.domElement)) {
-container.removeChild(renderer.domElement);
-}
-};
-}, [activeColor]);
-
-return (
-<div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing relative">
-{/* 3D Label overlay */}
-<div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-md border border-gray-200 px-3 py-1.5 rounded-full text-xs text-slate-600 flex items-center gap-1.5 select-none pointer-events-none shadow-sm">
-<Sparkles size={12} className="text-red-600 animate-pulse" />
-Interactive 3D Engine Active
-</div>
-</div>
-);
-}
-
-export default function App() {
-// Navigation & Screen Control (Dynamic state portal remains as requested)
-const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'bmi-portal' | 'booking-portal' | 'plans-portal'
-const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-const [activeTab, setActiveTab] = useState('home');
-const [isScrolled, setIsScrolled] = useState(false);
-const [preselectedPlan, setPreselectedPlan] = useState('');
-
-// Custom Interaction Helpers
-const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-const [soundEnabled, setSoundEnabled] = useState(false);
-const [promoClosed, setPromoClosed] = useState(false);
-const [showNotification, setShowNotification] = useState(false);
-const [notificationMsg, setNotificationMsg] = useState('');
-
-// Scroll tracking for custom indicators
-const { scrollYProgress } = useScroll();
-const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
-
-useEffect(() => {
-const handleScroll = () => {
-setIsScrolled(window.scrollY > 40);
-
-// Update active nav link based on scroll section
-const sections = ['home', 'about', 'programs', 'gallery', 'testimonials', 'contact'];
-for (const section of sections) {
-const el = document.getElementById(section);
-if (el) {
-const rect = el.getBoundingClientRect();
-if (rect.top <= 120 && rect.bottom >= 120) {
-setActiveTab(section);
-}
-}
-}
-};
-
-const handleMouseMove = (e) => {
-setCursorPos({ x: e.clientX, y: e.clientY });
-};
-
-window.addEventListener('scroll', handleScroll);
-window.addEventListener('mousemove', handleMouseMove);
-return () => {
-window.removeEventListener('scroll', handleScroll);
-window.removeEventListener('mousemove', handleMouseMove);
-};
-}, []);
-
-const triggerToast = (msg) => {
-setNotificationMsg(msg);
-setShowNotification(true);
-setTimeout(() => setShowNotification(false), 4500);
-};
-
-const handleOpenBooking = (planName = '') => {
-setPreselectedPlan(planName);
-setCurrentView('booking-portal');
-window.scrollTo({ top: 0, behavior: 'smooth' });
-triggerToast(planName ? `Initializing custom booking for ${planName}!` : "Opening elite reservation module.");
-};
-
-const handleOpenBMI = () => {
-setCurrentView('bmi-portal');
-window.scrollTo({ top: 0, behavior: 'smooth' });
-triggerToast("Loading smart BMI diagnostic tool.");
-};
-
-const handleOpenPlans = () => {
-setCurrentView('plans-portal');
-window.scrollTo({ top: 0, behavior: 'smooth' });
-triggerToast("Loading Premium Club Memberships.");
-};
-
-return (
-<div className="bg-[#fcfdfd] text-slate-950 font-sans min-h-screen relative overflow-x-hidden selection:bg-red-600 selection:text-white">
-
-{/* Scroll Progress Indicator */}
-<motion.div className="fixed top-0 left-0 right-0 h-1.5 bg-red-600 origin-left z-50 shadow-[0_0_10px_rgba(220,38,38,0.5)]" style={{ scaleX }} />
-
-{/* Modern Cursor Glow (Optimized for light background) */}
-<div
-className="hidden md:block pointer-events-none fixed w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 z-0"
-style={{ left: cursorPos.x, top: cursorPos.y }}
-/>
-
-{/* Custom Global Glass Toast Notification - White theme upgrade */}
-<AnimatePresence>
-{showNotification && (
-<motion.div
-initial={{ opacity: 0, y: 50, scale: 0.9 }}
-animate={{ opacity: 1, y: 0, scale: 1 }}
-exit={{ opacity: 0, y: 20, scale: 0.9 }}
-className="fixed bottom-24 left-6 z-50 max-w-sm bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-2xl p-4 shadow-xl flex items-center gap-3.5"
->
-<div className="bg-red-600/10 p-2 rounded-xl border border-red-500/20">
-<Sparkles className="text-red-600" size={20} />
-</div>
-<div>
-<p className="text-xs text-slate-500 uppercase tracking-widest font-black">NXT Level System</p>
-<p className="text-sm text-slate-800 mt-0.5 font-medium">{notificationMsg}</p>
-</div>
-<button onClick={() => setShowNotification(false)} className="text-slate-400 hover:text-slate-900 ml-auto">
-<X size={16} />
-</button>
-</motion.div>
-)}
-</AnimatePresence>
-
-{/* Floating Ambient Music & Sound Wave Indicator - White theme upgrade */}
-<div className="fixed bottom-6 left-6 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-full shadow-lg">
-<button
-onClick={() => {
-setSoundEnabled(!soundEnabled);
-triggerToast(soundEnabled ? "Ambient system sound muted." : "Ambient synth wave sequence activated!");
-}}
-className="p-2.5 rounded-full bg-red-600 text-white hover:bg-red-700 transition duration-300 shadow-[0_0_10px_rgba(220,38,38,0.3)]"
-aria-label="Toggle Sound"
->
-{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-</button>
-{soundEnabled && (
-<div className="flex items-end gap-0.5 h-4 pr-3">
-{[2, 4, 1, 3, 5, 2, 4].map((h, i) => (
-<motion.div
-key={i}
-className="w-0.5 bg-red-500 rounded-full"
-animate={{ height: [`${h*3}px`, `${(h*5)%16 + 2}px`, `${h*3}px`] }}
-transition={{ duration: 0.6 + i*0.1, repeat: Infinity, ease: "easeInOut" }}
-/>
-))}
-</div>
-)}
-</div>
-
-{/* Header / Navbar - White theme upgrade */}
-<nav className={`fixed top-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-lg py-3 border-b border-gray-200/80 shadow-md' : 'bg-transparent py-5'}`}>
-<div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-
-{/* Brand Logo */}
-<div
-onClick={() => { setCurrentView('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-className="flex items-center gap-2.5 cursor-pointer group"
->
-<div className="bg-red-600 p-2 rounded-xl group-hover:rotate-12 transition-transform duration-300 shadow-[0_0_15px_rgba(220,38,38,0.4)]">
-<Flame size={20} className="text-white fill-white" />
-</div>
-<div>
-<span className="text-2xl font-black italic tracking-tighter block leading-none text-slate-900">NXT<span className="text-red-600">LEVEL</span></span>
-<span className="text-[9px] uppercase tracking-[0.25em] text-slate-500 block font-bold mt-1">Belagavi Gym</span>
-</div>
-</div>
-
-{/* Nav Links */}
-{currentView === 'landing' ? (
-<div className="hidden lg:flex items-center gap-8">
-{[
-{ name: 'Home', target: 'home' },
-{ name: 'About', target: 'about' },
-{ name: 'Programs', target: 'programs' },
-{ name: 'Gallery', target: 'gallery' },
-{ name: 'Testimonials', target: 'testimonials' },
-{ name: 'Contact', target: 'contact' }
-].map(link => (
-<a
-key={link.name}
-href={`#${link.target}`}
-onClick={(e) => {
-e.preventDefault();
-document.getElementById(link.target)?.scrollIntoView({ behavior: 'smooth' });
-}}
-className={`text-sm tracking-wider uppercase font-bold transition duration-300 relative py-1.5 ${activeTab === link.target ? 'text-red-600' : 'text-slate-600 hover:text-slate-950'}`}
->
-{link.name}
-{activeTab === link.target && (
-<motion.div layoutId="activeUnderline" className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.5)]" />
-)}
-</a>
-))}
-</div>
-) : (
-<button
-onClick={() => setCurrentView('landing')}
-className="hidden lg:flex items-center gap-2 text-sm uppercase tracking-widest font-black text-slate-500 hover:text-slate-950 transition duration-200"
->
-<ArrowLeft size={16} /> Return to Home
-</button>
-)}
-
-{/* Quick Buttons Group */}
-<div className="hidden lg:flex items-center gap-4">
-<button
-onClick={handleOpenBMI}
-className="px-4 py-2 border border-red-500/30 rounded-xl text-xs uppercase tracking-wider font-bold hover:bg-red-500/10 transition duration-300 text-red-600 hover:border-red-600"
->
-BMI Calculator
-</button>
-<button
-onClick={handleOpenPlans}
-className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-gray-200 hover:border-gray-300 text-slate-800 rounded-xl text-xs uppercase tracking-wider font-bold transition duration-300"
->
-Memberships
-</button>
-<button
-onClick={() => handleOpenBooking()}
-className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs uppercase tracking-widest font-black rounded-xl transition duration-300 shadow-[0_0_15px_rgba(220,38,38,0.3)]"
->
-Join Club
-</button>
-</div>
-
-{/* Mobile menu trigger */}
-<button
-onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-className="lg:hidden p-2 text-slate-600 hover:text-slate-900 bg-slate-100 border border-gray-200 rounded-xl transition"
-aria-label="Toggle Menu"
->
-{mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-</button>
-</div>
-</nav>
-
-{/* Mobile Drawer Menu - White theme upgrade */}
-<AnimatePresence>
-{mobileMenuOpen && (
-<motion.div
-initial={{ opacity: 0, height: 0 }}
-animate={{ opacity: 1, height: 'auto' }}
-exit={{ opacity: 0, height: 0 }}
-className="fixed top-[72px] left-0 right-0 bg-white/98 backdrop-blur-2xl z-30 border-b border-gray-200 lg:hidden overflow-hidden shadow-lg"
->
-<div className="p-6 flex flex-col gap-4">
-{currentView === 'landing' ? (
-<>
-{['Home', 'About', 'Programs', 'Gallery', 'Testimonials', 'Contact'].map(item => (
-<a
-key={item}
-href={`#${item.toLowerCase()}`}
-onClick={() => {
-setMobileMenuOpen(false);
-document.getElementById(item.toLowerCase())?.scrollIntoView({ behavior: 'smooth' });
-}}
-className="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1"
->
-{item}
-</a>
-))}
-</>
-) : (
-<button
-onClick={() => { setMobileMenuOpen(false); setCurrentView('landing'); }}
-className="flex items-center gap-2 text-lg font-bold tracking-wider text-red-600 py-1"
->
-<ArrowLeft size={18} /> Main Landing Page
-</button>
-)}
-
-<hr className="border-gray-200 my-2" />
-
-<div className="grid grid-cols-2 gap-3">
-<button
-onClick={() => { setMobileMenuOpen(false); handleOpenBMI(); }}
-className="p-3 bg-slate-50 hover:bg-slate-100 text-center rounded-xl text-xs font-bold uppercase tracking-wider border border-gray-200 text-slate-800"
->
-BMI Calculator
-</button>
-<button
-onClick={() => { setMobileMenuOpen(false); handleOpenPlans(); }}
-className="p-3 bg-slate-50 hover:bg-slate-100 text-center rounded-xl text-xs font-bold uppercase tracking-wider border border-gray-200 text-slate-800"
->
-Pricing Plans
-</button>
-</div>
-<button
-onClick={() => { setMobileMenuOpen(false); handleOpenBooking(); }}
-className="w-full p-4 bg-red-600 text-center text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.3)]"
->
-Book Free Trial / Join
-</button>
-</div>
-</motion.div>
-)}
-</AnimatePresence>
-
-{/* Main Dynamic View Controller */}
-<AnimatePresence mode="wait">
-{currentView === 'landing' && (
-<motion.div
-key="landing"
-initial={{ opacity: 0 }}
-animate={{ opacity: 1 }}
-exit={{ opacity: 0 }}
-transition={{ duration: 0.4 }}
->
-<LandingScreen
-handleOpenBooking={handleOpenBooking}
-handleOpenBMI={handleOpenBMI}
-handleOpenPlans={handleOpenPlans}
-/>
-</motion.div>
-)}
-
-{currentView === 'bmi-portal' && (
-<motion.div
-key="bmi"
-initial={{ opacity: 0, x: 100 }}
-animate={{ opacity: 1, x: 0 }}
-exit={{ opacity: 0, x: -100 }}
-transition={{ duration: 0.4 }}
->
-<BMIPortal setView={setCurrentView} />
-</motion.div>
-)}
-
-{currentView === 'booking-portal' && (
-<motion.div
-key="booking"
-initial={{ opacity: 0, x: 100 }}
-animate={{ opacity: 1, x: 0 }}
-exit={{ opacity: 0, x: -100 }}
-transition={{ duration: 0.4 }}
->
-<BookingPortal setView={setCurrentView} preselectedPlan={preselectedPlan} />
-</motion.div>
-)}
-
-{currentView === 'plans-portal' && (
-<motion.div
-key="plans"
-initial={{ opacity: 0, x: 100 }}
-animate={{ opacity: 1, x: 0 }}
-exit={{ opacity: 0, x: -100 }}
-transition={{ duration: 0.4 }}
->
-<PlansPortal setView={setCurrentView} handleOpenBooking={handleOpenBooking} />
-</motion.div>
-)}
-</AnimatePresence>
-
-{/* Floating Call to Actions (Sticky CTA) */}
-<div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
-{/* Pulsing Back to Top Button */}
-<button
-onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-className="p-3 bg-white/90 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-full border border-gray-200 shadow-md transition flex items-center justify-center"
-title="Scroll to Top"
->
-<ArrowLeft size={18} className="rotate-90" />
-</button>
-
-{/* Live Floating WhatsApp CTA */}
-<a
-href="https://wa.me/918123103040?text=Hi%20NXT%20Level%20Fitness!%20I'd%20love%20to%20know%20more%20about%20your%20membership%20plans%20and%20class%20schedules."
-target="_blank"
-rel="noopener noreferrer"
-className="bg-green-500 hover:bg-green-600 p-4 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:scale-110 transition-transform flex items-center justify-center animate-bounce text-white"
-title="Connect on WhatsApp"
->
-<MessageCircle size={24} className="fill-white text-green-500" />
-</a>
-</div>
-
-{/* Main Professional Footer */}
-<Footer handleOpenBooking={handleOpenBooking} handleOpenBMI={handleOpenBMI} handleOpenPlans={handleOpenPlans} setCurrentView={setCurrentView} />
-</div>
-);
-}
-
-function LandingScreen({ handleOpenBooking, handleOpenBMI, handleOpenPlans }) {
-return (
-<div>
-{/* 1. Cinematic Hero Section with rotating 3D dumbbell (Light Theme upgrade) */}
-<section id="home" className="relative min-h-screen flex items-center justify-center pt-24 overflow-hidden bg-white">
-{/* Clean layout gradient overlay */}
-<div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white/80 to-[#fcfdfd] z-0 pointer-events-none" />
-<div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#fcfdfd] to-transparent z-10 pointer-events-none" />
-
-{/* Light Tech Grid Effect */}
-<div className="absolute inset-0 bg-[linear-gradient(rgba(220,38,38,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(220,38,38,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-40" />
-
-<div className="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-12 gap-12 items-center relative z-20 pt-10">
-
-{/* Hero Context Details */}
-<div className="lg:col-span-7 flex flex-col justify-center text-center lg:text-left">
-
-{/* Tagline */}
-<div className="inline-flex items-center gap-2 bg-red-50 border border-red-500/20 px-4 py-2 rounded-full w-fit mx-auto lg:mx-0 mb-6">
-<Trophy size={14} className="text-red-600" />
-<span className="text-xs uppercase tracking-widest text-red-600 font-black">Ranked #1 Gym in Belagavi</span>
-</div>
-
-{/* Title heading */}
-<h1 className="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[1.05] mb-6 text-slate-900">
-Transform Your Body <br className="hidden sm:inline" />
-To The <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 via-red-500 to-slate-900 relative">
-NXT Level
-<span className="absolute -bottom-2 left-0 w-full h-[3px] bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]" />
-</span>
-</h1>
-
-{/* Subtext description */}
-<p className="text-slate-600 text-base sm:text-lg lg:text-xl max-w-xl mb-10 leading-relaxed font-medium mx-auto lg:mx-0">
-Elite Gym Experience in Belagavi with Expert Certified Trainers, World-Class Imported Biomechanical Equipment & a Motivating community.
-</p>
-
-{/* CTAs */}
-<div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-<button
-onClick={() => handleOpenBooking('General Memberships')}
-className="group px-8 py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 flex items-center justify-center gap-2.5 shadow-[0_10px_25px_rgba(220,38,38,0.35)] transform hover:-translate-y-0.5"
->
-Join Now
-<ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-</button>
-
-<button
-onClick={() => handleOpenBooking('Free Trial')}
-className="px-8 py-5 bg-white border border-gray-200 hover:border-red-500/50 hover:bg-red-50/50 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 shadow-sm"
->
-Book Free Trial
-</button>
-
-<a
-href="https://wa.me/918123103040?text=Hi!%20I'm%20interested%20in%20visiting%20the%20NXT%20Level%20Fitness%20gym%20facility.%20Please%20guide%20me%20on%20visiting%20timings."
-target="_blank"
-rel="noopener noreferrer"
-className="px-8 py-5 bg-slate-50 border border-emerald-500/20 hover:border-emerald-500/50 hover:bg-emerald-50 rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 flex items-center justify-center gap-2 text-emerald-600 shadow-sm"
->
-<MessageCircle size={18} className="fill-emerald-600 text-slate-50" />
-WhatsApp Us
-</a>
-</div>
-
-{/* Hero Trust Badges - White theme upgrade */}
-<div className="grid grid-cols-3 gap-6 pt-12 mt-12 border-t border-gray-200 max-w-lg mx-auto lg:mx-0">
-<div>
-<span className="block text-2xl font-black text-red-600">4.9★</span>
-<span className="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">Google reviews</span>
-</div>
-<div>
-<span className="block text-2xl font-black text-slate-900">3+ Yrs</span>
-<span className="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">In Belagavi</span>
-</div>
-<div>
-<span className="block text-2xl font-black text-slate-900">1000+</span>
-<span className="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">Transformations</span>
-</div>
-</div>
-
-</div>
-
-{/* Dumbbell 3D Model Render Window - Light Theme container */}
-<div className="lg:col-span-5 w-full h-[320px] sm:h-[450px] bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-3xl overflow-hidden relative shadow-lg">
-<ThreeDumbbellCanvas />
-</div>
-
-</div>
-</section>
-
-{/* 2. Premium About section with counters & floating facts */}
-<section id="about" className="py-24 px-6 relative overflow-hidden bg-gradient-to-b from-[#fcfdfd] to-white">
-{/* Soft glowing elements */}
-<div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-<div className="max-w-7xl mx-auto">
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Welcome to Elite Fitness</span>
-<h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
-We Are <span className="text-red-600">NXT Level</span> Fitness
-</h2>
-<div className="w-24 h-1 bg-red-600 mx-auto mt-4 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.3)]" />
-</div>
-
-<div className="grid lg:grid-cols-2 gap-16 items-center">
-
-{/* Details Box - Bright layout inputs */}
-<div className="space-y-6">
-<h3 className="text-2xl sm:text-3xl font-black uppercase leading-snug text-slate-900">
-Pushing Your Physical Limits Since Day One
-</h3>
-
-<p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-Located on <span className="text-slate-900 font-bold">Ramling Khind Road in Peth, Belagavi</span>, Next Level Fitness (NXT Level Fitness) offers high-caliber personal training, pristine strength conditioning machines, and custom diet structures.
-</p>
-
-<div className="grid sm:grid-cols-2 gap-4 pt-4">
-<div className="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
-<div className="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
-<Award size={20} />
-</div>
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Elite Standard</h4>
-<p className="text-xs text-slate-500 mt-1">Certified personal trainers tailored to assist on every movement.</p>
-</div>
-</div>
-
-<div className="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
-<div className="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
-<Activity size={20} />
-</div>
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Advanced Machinery</h4>
-<p className="text-xs text-slate-500 mt-1">Fully loaded biomechanical resistance stacks and cardio grids.</p>
-</div>
-</div>
-
-<div className="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
-<div className="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
-<Compass size={20} />
-</div>
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Functional Area</h4>
-<p className="text-xs text-slate-500 mt-1">Spacious functional setups for CrossFit, HIIT, and Kettlebell work.</p>
-</div>
-</div>
-
-<div className="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
-<div className="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
-<Heart size={20} />
-</div>
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Unbeatable Vibe</h4>
-<p className="text-xs text-slate-500 mt-1">High-tempo audio tracks and absolute motivating energy.</p>
-</div>
-</div>
-</div>
-
-<div className="pt-6">
-<button
-onClick={() => handleOpenBooking('Free Trial')}
-className="px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition duration-300 uppercase tracking-wider text-xs flex items-center gap-2 shadow-md shadow-red-500/15"
->
-Schedule A Visit
-<ArrowRight size={14} />
-</button>
-</div>
-
-</div>
-
-{/* Visual Glass Cards Side - Bright upgraded background card */}
-<div className="relative">
-
-{/* Main Glowing Poster Card */}
-<div className="h-[400px] w-full bg-gradient-to-br from-red-500/10 via-white to-slate-50 border border-gray-200 rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden shadow-xl">
-<div className="absolute top-0 right-0 w-[200px] h-[200px] bg-red-500/5 rounded-full blur-[50px]" />
-
-<div className="flex justify-between items-start">
-<span className="text-4xl font-extrabold text-slate-900">NXT<span className="text-red-600">LVL</span></span>
-<div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1 rounded-full text-xs text-yellow-600 font-bold shadow-sm">
-<Star size={12} className="fill-yellow-500 text-yellow-500" />
-4.9 / 5.0 Google Rating
-</div>
-</div>
-
-<div>
-<h4 className="text-xs uppercase tracking-widest text-red-600 font-extrabold mb-1">Our Location</h4>
-<p className="text-xl font-black text-slate-900 mb-2 leading-relaxed">
-CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi
-</p>
-<p className="text-xs text-slate-500 font-medium">
-Conveniently located with dedicated bike parking and optimal layout ventilation.
-</p>
-</div>
-</div>
-
-{/* Floating Stat Card 1 */}
-<div className="absolute -top-6 -right-6 sm:right-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-lg flex items-center gap-3">
-<div className="bg-red-600 p-2.5 rounded-xl text-white">
-<Zap size={20} />
-</div>
-<div>
-<span className="block text-xl font-black text-slate-900">5+ Elite</span>
-<span className="block text-xs text-slate-500 font-semibold">Coaches On Floor</span>
-</div>
-</div>
-
-{/* Floating Stat Card 2 */}
-<div className="absolute -bottom-6 left-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-lg flex items-center gap-3">
-<div className="bg-slate-100 p-2.5 rounded-xl">
-<Clock size={20} className="text-red-600" />
-</div>
-<div>
-<span className="block text-xl font-black text-slate-900">Flexible</span>
-<span className="block text-xs text-slate-500 font-semibold">Timings All Week</span>
-</div>
-</div>
-
-</div>
-
-</div>
-
-</div>
-</section>
-
-{/* 3. Dynamic interactive Class/Programs Section with 3D Flip Cards - Bright upgrade */}
-<section id="programs" className="py-24 px-6 bg-white relative">
-<div className="max-w-7xl mx-auto">
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Our Disciplines</span>
-<h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
-Interactive <span className="text-red-600">3D Programs</span>
-</h2>
-<p className="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
-Hover or tap on any discipline program card to explore detailed benefits and lock in custom packages.
-</p>
-</div>
-
-<div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-{[
-{ title: "Weight Training", desc: "Scientific progressive overload focusing on target muscle activation, posture correction and heavy biomechanical lifts.", icon: <Dumbbell size={24} />, tag: "Strength" },
-{ title: "CrossFit", desc: "High-intensity metabolic conditioning loops using functional bumper weights, kettlebells and plyobox structures.", icon: <Flame size={24} />, tag: "Intensity" },
-{ title: "Cardio Conditioning", desc: "Stamina and lung capacity optimization utilizing premium state machine treadmills, spin cycles and rowers.", icon: <Activity size={24} />, tag: "Endurance" },
-{ title: "Zumba & Dance", desc: "Vibrant calorie-burning aerobic sequences hosted by energetic licensed instructors in optimized audio rooms.", icon: <Sparkles size={24} />, tag: "Community" },
-{ title: "Muscle Gain", desc: "Detailed custom hyper-trophy structures paired with accurate weekly macro calculations to track physical gain.", icon: <Award size={24} />, tag: "Transformation" },
-{ title: "Fat Loss Focus", desc: "Dynamic thermal deficit combinations matching metabolic trackers for healthy fat shredding targets.", icon: <Target size={24} />, tag: "Lean" },
-{ title: "Personal Training", desc: "1-on-1 dedicated attention with customized routine logs, constant progress reports, and premium mentoring.", icon: <Users size={24} />, tag: "Elite 1-on-1" },
-{ title: "Strength Training", desc: "Powerlifting frameworks dedicated to boosting squat, benchpress and deadlift technical capacities safely.", icon: <Compass size={24} />, tag: "Performance" }
-].map((prog, idx) => (
-<div
-key={idx}
-onClick={() => handleOpenBooking(prog.title)}
-className="group h-[280px] [perspective:1000px] cursor-pointer"
->
-<div className="relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-
-{/* Front Side */}
-<div className="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between [backface-visibility:hidden] hover:border-red-500 transition-colors duration-300 shadow-sm">
-<div className="flex justify-between items-start">
-<div className="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 group-hover:bg-red-600 group-hover:text-white transition duration-300">
-{prog.icon}
-</div>
-<span className="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">
-{prog.tag}
-</span>
-</div>
-
-<div>
-<h3 className="text-xl font-black uppercase tracking-wide text-slate-900 group-hover:text-red-600 transition duration-300">{prog.title}</h3>
-<p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">{prog.desc}</p>
-</div>
-</div>
-
-{/* Back Side (Dynamic Overlay Details) - Upgrade background to warm premium light red overlay */}
-<div className="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between [transform:rotateY(180deg)] [backface-visibility:hidden] shadow-md">
-<div>
-<span className="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
-<h4 className="text-lg font-black uppercase text-slate-900">{prog.title}</h4>
-<p className="text-xs text-slate-700 mt-3 leading-relaxed">{prog.desc}</p>
-</div>
-
-<button className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">
-Reserve Custom Session
-</button>
-</div>
-
-</div>
-</div>
-))}
-</div>
-
-</div>
-</section>
-
-{/* 4. Live Class Timings Widget - Light upgraded style */}
-<section className="py-16 px-6 bg-slate-50 border-y border-gray-200">
-<div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
-<div className="lg:col-span-4">
-<span className="text-red-600 text-xs font-black uppercase tracking-widest block mb-2">Live Class Schedules</span>
-<h3 className="text-2xl sm:text-3xl font-extrabold uppercase text-slate-900">Weekly Timing Grids</h3>
-<p className="text-sm text-slate-600 mt-4 leading-relaxed font-medium">
-We cater to both early-bird grinders and late-night fitness champions with custom schedules throughout the weekdays.
-</p>
-<div className="mt-6 flex flex-wrap gap-2">
-<span className="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-slate-700 font-bold shadow-sm">Mon - Sat: 5 AM - 10 PM</span>
-<span className="px-3.5 py-1.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-600 font-black">Sunday: 7 AM - 12 PM</span>
-</div>
-</div>
-
-<div className="lg:col-span-8 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm">
-<div className="grid sm:grid-cols-3 gap-6">
-{[
-{ title: "Morning Strength", time: "05:00 AM - 09:00 AM", focus: "Heavy Resistance" },
-{ title: "Functional HIIT", time: "09:30 AM - 11:00 AM", focus: "Calorie Shred" },
-{ title: "Zumba Beats", time: "05:00 PM - 06:00 PM", focus: "Cardio Fun" },
-{ title: "Peak Resistance", time: "06:00 PM - 08:30 PM", focus: "Athletic Build" },
-{ title: "Hypertrophy Push", time: "08:30 PM - 10:00 PM", focus: "Muscle Volumizer" },
-{ title: "Sunday Power Hour", time: "07:00 AM - 11:00 AM", focus: "Core & Stretch" }
-].map((slot, i) => (
-<div key={i} className="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
-<div className="flex items-center gap-2 mb-2">
-<Clock size={14} className="text-red-600" />
-<span className="text-xs text-slate-500 font-bold">{slot.time}</span>
-</div>
-<h4 className="font-black text-slate-900 text-sm uppercase tracking-wide">{slot.title}</h4>
-<p className="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">{slot.focus}</p>
-</div>
-))}
-</div>
-</div>
-</div>
-</section>
-
-{/* 5. Before / After Interactive Slider & Image Gallery - Light Theme upgrade */}
-<section id="gallery" className="py-24 px-6 bg-gradient-to-b from-[#fcfdfd] to-white">
-<div className="max-w-7xl mx-auto">
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Proof of Results</span>
-<h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
-Elite <span className="text-red-600">Transformations</span>
-</h2>
-<p className="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
-Real hard work yields real results. Check out the spectacular progress of our dedicated Belagavi athletes.
-</p>
-</div>
-
-<div className="grid lg:grid-cols-12 gap-12 items-center">
-
-{/* Interactive Before/After Card Info */}
-<div className="lg:col-span-5">
-<h3 className="text-xl sm:text-2xl font-black uppercase text-slate-900 mb-4">Interactive Performance Metric</h3>
-<p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
-Observe metabolic progress and structural alignment upgrades mapped out across standard timeline indexes.
-</p>
-
-<div className="space-y-4">
-<div className="p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
-<span className="text-red-600 text-xs font-black block">ATHLETE FOCUS #01</span>
-<div className="flex justify-between items-center mt-1">
-<span className="font-bold text-slate-900">Rahul K. (Belagavi)</span>
-<span className="text-xs text-slate-500 font-bold">12 Weeks Transformation</span>
-</div>
-<div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
-<div>
-<span className="text-[10px] uppercase text-slate-400 block font-bold">FAT LOSS</span>
-<span className="text-sm font-black text-red-600">-14 Kgs Shred</span>
-</div>
-<div>
-<span className="text-[10px] uppercase text-slate-400 block font-bold">MUSCLE MASS</span>
-<span className="text-sm font-black text-emerald-600">+4.5 Kgs Gain</span>
-</div>
-</div>
-</div>
-
-<div className="p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
-<span className="text-red-600 text-xs font-black block">ATHLETE FOCUS #02</span>
-<div className="flex justify-between items-center mt-1">
-<span className="font-bold text-slate-900">Sneha M. (Belagavi)</span>
-<span className="text-xs text-slate-500 font-bold">16 Weeks Strength Program</span>
-</div>
-<div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
-<div>
-<span className="text-[10px] uppercase text-slate-400 block font-bold">SQUAT PUSH</span>
-<span className="text-sm font-black text-emerald-600">45kg to 85kg</span>
-</div>
-<div>
-<span className="text-[10px] uppercase text-slate-400 block font-bold">CARDIO STAMINA</span>
-<span className="text-sm font-black text-emerald-600 font-bold">Doubled</span>
-</div>
-</div>
-</div>
-</div>
-</div>
-
-{/* Before/After visual cards - Light mode backgrounds */}
-<div className="lg:col-span-7 grid sm:grid-cols-2 gap-6">
-
-{/* Card 1 */}
-<div className="bg-slate-50 border border-gray-200 rounded-3xl overflow-hidden group shadow-md">
-<div className="relative h-64 bg-slate-100 flex items-center justify-center overflow-hidden">
-<div className="absolute inset-0 bg-cover bg-center opacity-85 group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600&auto=format&fit=crop')" }} />
-<div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-<span className="absolute top-4 left-4 bg-white/90 border border-gray-200 text-slate-900 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase shadow-sm">BEFORE</span>
-<div className="absolute bottom-4 left-4">
-<span className="text-xs text-red-400 font-bold block">Body Fat Ratio: 28%</span>
-<span className="text-lg font-black uppercase text-white">Low Stamina Stage</span>
-</div>
-</div>
-<div className="relative h-64 bg-slate-100 flex items-center justify-center overflow-hidden border-t border-gray-200">
-<div className="absolute inset-0 bg-cover bg-center opacity-85 group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=600&auto=format&fit=crop')" }} />
-<div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-<span className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">AFTER 12 WEEKS</span>
-<div className="absolute bottom-4 left-4">
-<span className="text-xs text-green-400 font-bold block">Body Fat Ratio: 14%</span>
-<span className="text-lg font-black uppercase text-red-500">Peak Physical Condition</span>
-</div>
-</div>
-</div>
-
-{/* Card 2 */}
-<div className="bg-white border border-gray-200 rounded-3xl overflow-hidden group shadow-md flex flex-col justify-between p-6">
-<div>
-<div className="inline-flex items-center gap-1 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full text-xs text-red-600 mb-4 font-bold">
-<Zap size={12} /> Live Facilities View
-</div>
-<h4 className="text-2xl font-black uppercase text-slate-900">Pristine Equipment Grid</h4>
-<p className="text-sm text-slate-500 mt-2 leading-relaxed">
-Our biomechanical equipment handles extreme loads smoothly, ensuring correct resistance alignment without stressing joint tissues.
-</p>
-</div>
-
-<div className="grid grid-cols-2 gap-3 mt-6">
-<div className="h-32 rounded-2xl bg-cover bg-center shadow-inner border border-gray-100" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=300&auto=format&fit=crop')" }} />
-<div className="h-32 rounded-2xl bg-cover bg-center shadow-inner border border-gray-100" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=300&auto=format&fit=crop')" }} />
-</div>
-</div>
-
-</div>
-
-</div>
-
-</div>
-</section>
-
-{/* 7. Realistic Client Testimonials - Glassmorphic Light style */}
-<section id="testimonials" className="py-24 px-6 bg-white border-t border-gray-200">
-<div className="max-w-7xl mx-auto">
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Athletes Speak</span>
-<h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
-Elite <span className="text-red-600">Testimonials</span>
-</h2>
-<p className="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
-Check out honest reviews written by active Belagavi community members training at our facilities.
-</p>
-</div>
-
-<div className="grid md:grid-cols-3 gap-8">
-{[
-{ name: "Anish Patil", review: "Excellent gym with motivating atmosphere. The imported biomechanics are incredible. Trainers on floor are highly supportive.", rate: 5 },
-{ name: "Rohit Deshpande", review: "Best trainers and premium equipment. I completed my 14kg body shredding program safely with absolute posture tracking.", rate: 5 },
-{ name: "Priya Hegde", review: "Very friendly environment and professional guidance. Dedicated Zumba setups and pristine ventilation spaces are outstanding.", rate: 5 }
-].map((testi, i) => (
-<div
-key={i}
-className="p-8 bg-slate-50 border border-gray-200 rounded-3xl relative flex flex-col justify-between shadow-sm"
->
-<div>
-<div className="flex gap-1 text-yellow-500 mb-6">
-{Array.from({ length: testi.rate }).map((_, idx) => (
-<Star key={idx} size={16} className="fill-yellow-500 text-yellow-500" />
-))}
-</div>
-<p className="text-slate-700 italic leading-relaxed text-sm sm:text-base font-medium">
-"{testi.review}"
-</p>
-</div>
-
-<div className="mt-8 pt-6 border-t border-gray-200/60 flex items-center gap-3">
-<div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center font-black text-xs text-white uppercase shadow-md">
-{testi.name[0]}
-</div>
-<div>
-<h4 className="font-black text-slate-900 text-sm">{testi.name}</h4>
-<span className="text-[10px] uppercase text-slate-400 tracking-widest block font-extrabold">Active Member</span>
-</div>
-</div>
-</div>
-))}
-</div>
-
-</div>
-</section>
-
-{/* 8. Working Live FAQ Accordion Widget - Light upgraded structure */}
-<section className="py-24 px-6 bg-slate-50/50">
-<div className="max-w-4xl mx-auto">
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Questions & Answers</span>
-<h2 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-slate-900">
-Frequently Asked <span className="text-red-600">Queries</span>
-</h2>
-</div>
-
-<div className="space-y-4">
-{[
-{ q: "What are the exact operating timings of the Belagavi branch?", a: "We operate Monday through Saturday from 5:00 AM to 10:00 PM without any afternoon breaks. On Sundays, we are open for power hours from 7:00 AM to 12:00 PM." },
-{ q: "Do you have dedicated parking for cars and bikes?", a: "Yes, we have safe, spacious parking grids on-site, fully covered under active surveillance for all our members' convenience." },
-{ q: "Can I try out the gym for a day before committing?", a: "Absolutely! You can easily book a Free 1-Day Trial via our online booking wizard, which will issue a digital visitor pass instantly." },
-{ q: "Are personal trainers certified to craft customized nutrition plans?", a: "Yes, all floor coaches are internationally certified (including K11 and CrossFit certifications) and are fully trained to guide you through calorie setups and nutrition macros safely." }
-].map((faq, i) => (
-<FAQItem key={i} question={faq.q} answer={faq.a} />
-))}
-</div>
-
-</div>
-</section>
-
-
-{/* 10. Contact Section with map embed - High contrast inputs */}
-<section id="contact" className="py-24 px-6 bg-white">
-<div className="max-w-7xl mx-auto">
-
-<div className="grid lg:grid-cols-12 gap-12">
-
-{/* Quick Contact Info */}
-<div className="lg:col-span-5 flex flex-col justify-between">
-<div>
-<span className="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">GET IN TOUCH</span>
-<h2 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight mb-6 text-slate-900">
-Visit <span className="text-red-600">The Gym</span> Today
-</h2>
-
-<p className="text-slate-600 leading-relaxed text-sm sm:text-base mb-8 font-medium">
-Stop by our premier fitness center in Belagavi to experience our top-tier strength infrastructure firsthand. Feel free to reach out via phone, email, or WhatsApp.
-</p>
-
-<div className="space-y-4">
-<div className="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
-<MapPin className="text-red-600 shrink-0 mt-1" size={20} />
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Our Physical Location</h4>
-<p className="text-xs text-slate-500 mt-1 font-semibold leading-relaxed">CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi, Karnataka 590001</p>
-</div>
-</div>
-
-<div className="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
-<Phone className="text-red-600 shrink-0 mt-1" size={20} />
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Call Or Message Support</h4>
-<p className="text-xs text-slate-500 mt-1 font-semibold">+91 8123103040</p>
-</div>
-</div>
-
-<div className="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
-<Mail className="text-red-600 shrink-0 mt-1" size={20} />
-<div>
-<h4 className="font-bold text-slate-900 text-sm">Email Support Team</h4>
-<p className="text-xs text-slate-500 mt-1 font-semibold">support@nxtlevelfitness.com</p>
-</div>
-</div>
-</div>
-</div>
-
-<div className="pt-8">
-<h4 className="font-black text-slate-900 text-sm uppercase mb-3">Connect on Socials</h4>
-<div className="flex gap-4">
-<a href="#" className="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
-<Instagram size={18} />
-</a>
-<a href="#" className="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
-<Facebook size={18} />
-</a>
-<a href="#" className="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
-<Youtube size={18} />
-</a>
-</div>
-</div>
-
-</div>
-
-{/* Embed Map Screen - Soft warmth styling for light alignment */}
-<div className="lg:col-span-7 bg-slate-50 border border-gray-200 rounded-3xl overflow-hidden h-[400px] lg:h-auto min-h-[350px] shadow-md relative">
-<iframe
-title="Google Maps Location for NXT Level Fitness"
-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3838.01235471447!2d74.5097127!3d15.8512142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bbf6164f2fb92bf%3A0x6bfe7c98b68b753!2sCTS%20No.1283%2F1%2C%20Ramling%20Khind%20Rd%2C%20Raviwar%20Peth%2C%20Belagavi%2C%20Karnataka%20590001!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
-className="w-full h-full border-0 grayscale hover:grayscale-0 transition duration-300 opacity-95"
-allowFullScreen=""
-loading="lazy"
-referrerPolicy="no-referrer-when-downgrade"
-/>
-</div>
-
-</div>
-
-</div>
-</section>
-
-</div>
-);
-}
-
-function FAQItem({ question, answer }) {
-const [isOpen, setIsOpen] = useState(false);
-return (
-<div className="bg-white border border-gray-200 rounded-2xl overflow-hidden transition duration-300 hover:border-gray-300/80 shadow-sm">
-<button
-onClick={() => setIsOpen(!isOpen)}
-className="w-full p-5 text-left flex justify-between items-center gap-4 text-slate-900 hover:text-red-600 transition duration-300 font-bold"
->
-<span className="font-extrabold text-sm sm:text-base uppercase tracking-wide">{question}</span>
-<HelpCircle size={18} className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180 text-red-600' : 'text-slate-400'}`} />
-</button>
-<AnimatePresence initial={false}>
-{isOpen && (
-<motion.div
-initial={{ height: 0, opacity: 0 }}
-animate={{ height: "auto", opacity: 1 }}
-exit={{ height: 0, opacity: 0 }}
-transition={{ duration: 0.25 }}
-className="overflow-hidden border-t border-gray-100 bg-slate-50/50"
->
-<p className="p-5 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-{answer}
-</p>
-</motion.div>
-)}
-</AnimatePresence>
-</div>
-);
-}
-
-function BMIPortal({ setView }) {
-const [weight, setWeight] = useState('');
-const [height, setHeight] = useState('');
-const [bmiResult, setBmiResult] = useState(null);
-const [bmiCategory, setBmiCategory] = useState('');
-const [tips, setTips] = useState([]);
-
-const handleCalculate = (e) => {
-e.preventDefault();
-if (!weight || !height) return;
-
-const w = parseFloat(weight);
-const h = parseFloat(height) / 100; // Convert to meters
-const bmiVal = (w / (h * h)).toFixed(1);
-setBmiResult(bmiVal);
-
-let cat = '';
-let healthTips = [];
-
-if (bmiVal < 18.5) {
-cat = 'Underweight';
-healthTips = [
-"Focus on calorie-dense healthy foods like nuts, avocados, and complex carbs.",
-"Enroll in our customized Muscle Gain weight program.",
-"Prioritize strength resistance workouts to build healthy muscle volume."
-];
-} else if (bmiVal >= 18.5 && bmiVal < 24.9) {
-cat = 'Normal';
-healthTips = [
-"Outstanding! Maintain consistency in your daily fitness habits.",
-"Join our CrossFit and powerlifting program to upgrade physical endurance.",
-"Focus on a balanced protein intake matching daily exertion."
-];
-} else if (bmiVal >= 25 && bmiVal < 29.9) {
-cat = 'Overweight';
-healthTips = [
-"Incorporate intense HIIT cardio circuits inside our functional gym areas.",
-"Aim for a progressive caloric deficit backed by structural training.",
-"Limit simple carbs and sugars while optimizing hydration."
-];
-} else {
-cat = 'Obese';
-healthTips = [
-"Consult our certified trainers to formulate safe, non-impact initial movements.",
-"Prioritize joint-safe low-impact cardio work matched with structural diet guidelines.",
-"Track weekly progression changes accurately with metabolic metrics."
-];
-}
-
-setBmiCategory(cat);
-setTips(healthTips);
-};
-
-const getGaugeColor = () => {
-switch (bmiCategory) {
-case 'Normal': return 'bg-emerald-500';
-case 'Underweight': return 'bg-sky-400';
-case 'Overweight': return 'bg-yellow-500';
-case 'Obese': return 'bg-red-500';
-default: return 'bg-gray-400';
-}
-};
-
-return (
-<div className="pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
-<div className="absolute top-1/4 right-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-<div className="max-w-4xl mx-auto relative z-10">
-
-{/* Navigation back */}
-<button
-onClick={() => setView('landing')}
-className="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-8"
->
-<ArrowLeft size={14} /> Back to main landing page
-</button>
-
-<div className="grid md:grid-cols-12 gap-12 items-start">
-
-{/* Input Panel - Upgraded light design */}
-<div className="md:col-span-6 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-md">
-<span className="text-red-600 text-xs font-black uppercase tracking-widest block mb-1">HEALTH METRIC CHECK</span>
-<h2 className="text-2xl sm:text-3xl font-black uppercase text-slate-900 mb-6">BMI Diagnostic Tool</h2>
-
-<form onSubmit={handleCalculate} className="space-y-6">
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Weight (Kgs)</label>
-<input
-type="number"
-required
-placeholder="e.g. 75"
-value={weight}
-onChange={(e) => setWeight(e.target.value)}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-medium focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
-/>
-</div>
-
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Height (Cms)</label>
-<input
-type="number"
-required
-placeholder="e.g. 175"
-value={height}
-onChange={(e) => setHeight(e.target.value)}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-medium focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
-/>
-</div>
-
-<button
-type="submit"
-className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-xs rounded-xl transition duration-300 shadow-[0_10px_15px_rgba(220,38,38,0.2)]"
->
-Compute Score
-</button>
-</form>
-</div>
-
-{/* Result Portal - Upgraded light indicators */}
-<div className="md:col-span-6">
-{bmiResult ? (
-<motion.div
-initial={{ opacity: 0, scale: 0.95 }}
-animate={{ opacity: 1, scale: 1 }}
-className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden"
->
-<div className="absolute top-0 right-0 w-[150px] h-[150px] bg-red-500/5 rounded-full blur-[50px] pointer-events-none" />
-
-<span className="text-slate-500 text-xs uppercase tracking-widest block font-extrabold mb-1">METRIC SCORE</span>
-<div className="flex items-baseline gap-2 mt-2">
-<span className="text-6xl font-black text-slate-900">{bmiResult}</span>
-<span className="text-sm text-slate-500 font-bold">Score</span>
-</div>
-
-{/* Status Bar */}
-<div className="mt-6">
-<div className="flex justify-between items-center text-xs text-slate-500 mb-2 font-bold">
-<span>Category:</span>
-<span className="font-black text-slate-900 uppercase tracking-wider">{bmiCategory}</span>
-</div>
-<div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-<motion.div
-className={`h-full ${getGaugeColor()}`}
-initial={{ width: 0 }}
-animate={{ width: `${Math.min((bmiResult / 40) * 100, 100)}%` }}
-transition={{ duration: 0.8 }}
-/>
-</div>
-</div>
-
-<div className="mt-8 pt-6 border-t border-gray-200/60">
-<span className="text-xs uppercase tracking-widest text-red-600 font-black block mb-4">Elite Training Advices</span>
-<ul className="space-y-3">
-{tips.map((tip, idx) => (
-<li key={idx} className="flex gap-2.5 items-start text-xs text-slate-700 font-semibold leading-relaxed">
-<Check className="text-red-600 shrink-0 mt-0.5" size={14} />
-{tip}
-</li>
-))}
-</ul>
-</div>
-
-<div className="mt-8">
-<button
-onClick={() => setView('booking-portal')}
-className="w-full py-3 bg-slate-50 hover:bg-slate-100 border border-gray-200 text-slate-800 rounded-xl text-xs uppercase tracking-wider font-black transition duration-200"
->
-Custom Consultation Booking
-</button>
-</div>
-</motion.div>
-) : (
-<div className="h-full min-h-[300px] bg-white border border-gray-200 rounded-3xl p-8 flex flex-col justify-center items-center text-center shadow-sm">
-<Dumbbell className="text-slate-300 animate-pulse mb-4" size={48} />
-<h3 className="font-extrabold text-lg uppercase tracking-wider text-slate-400">No calculation data yet</h3>
-<p className="text-xs text-slate-500 max-w-xs mt-2 leading-relaxed font-semibold">
-Enter your exact metric physical values into the input portal on the left to compute diagnostics instantly.
-</p>
-</div>
-)}
-</div>
-
-</div>
-
-</div>
-</div>
-);
-}
-
-function PlansPortal({ setView, handleOpenBooking }) {
-return (
-<div className="pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
-<div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-<div className="max-w-7xl mx-auto relative z-10">
-
-{/* Navigation back */}
-<button
-onClick={() => setView('landing')}
-className="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-12"
->
-<ArrowLeft size={14} /> Back to main landing page
-</button>
-
-<div className="text-center mb-16">
-<span className="text-red-600 text-xs font-black uppercase tracking-widest block mb-3">ELITE TIERS</span>
-<h2 className="text-3xl sm:text-5xl font-black uppercase text-slate-900">Gym Club Membership</h2>
-<div className="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full" />
-</div>
-
-<div className="grid md:grid-cols-4 gap-6">
-{[
-{
-name: "Monthly",
-price: "₹999",
-badge: "STANDARD",
-features: [
-"Complete floor access Mon-Sat",
-"Full strength equipment access",
-"Lockers & changing room access",
-"Standard initial posture screening"
-]
-},
-{
-name: "Quarterly",
-price: "₹2,499",
-badge: "POPULAR SAVER",
-glow: true,
-features: [
-"Complete standard floor access",
-"1 custom diet consultation log",
-"Body composition breakdown stats",
-"Priority booking for zumba grids"
-]
-},
-{
-name: "Annual",
-price: "₹8,999",
-badge: "BEST VALUE TIERS",
-glow: true,
-features: [
-"Full standard gym access for 1 yr",
-"Free 4 personalized workout plans",
-"24/7 dedicated trainer assistance",
-"Full macro-nutrient breakdown log"
-]
-},
-{
-name: "Elite PT Plan",
-price: "Custom",
-badge: "1-ON-1 PREMIUM",
-features: [
-"Private dedicated certified trainer",
-"Daily body vitals metric checking",
-"100% custom detailed meal logs",
-"Guaranteed body transformation scale"
-]
-}
-].map((plan, i) => (
-<div
-key={i}
-className={`p-8 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between ${plan.glow ? 'bg-red-50/70 border-red-300 shadow-xl' : 'bg-white border-gray-200 hover:border-gray-300 shadow-md'}`}
->
-{plan.glow && (
-<span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black text-[9px] uppercase px-3 py-1 rounded-full tracking-widest shadow-md">
-{plan.badge}
-</span>
-)}
-
-<div>
-{!plan.glow && (
-<span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-widest block mb-2">{plan.badge}</span>
-)}
-<h3 className="text-2xl font-black uppercase tracking-wide text-slate-900">{plan.name}</h3>
-<div className="flex items-baseline gap-1 mt-4">
-<span className="text-4xl font-black text-red-600">{plan.price}</span>
-{plan.price !== 'Custom' && <span className="text-xs text-slate-500 font-bold">/ Period</span>}
-</div>
-
-<ul className="space-y-3.5 mt-8 pt-6 border-t border-gray-200/60">
-{plan.features.map((feat, fIdx) => (
-<li key={fIdx} className="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
-<CheckCircle className="text-red-600 shrink-0 mt-0.5" size={14} />
-{feat}
-</li>
-))}
-</ul>
-</div>
-
-<div className="mt-8 pt-6">
-<button
-onClick={() => handleOpenBooking(plan.name)}
-className={`w-full py-4 rounded-xl text-xs uppercase tracking-widest font-black transition duration-300 ${plan.glow ? 'bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-500/10' : 'bg-slate-100 hover:bg-red-600 hover:text-white text-slate-800'}`}
->
-Join With {plan.name}
-</button>
-</div>
-
-</div>
-))}
-</div>
-
-</div>
-</div>
-);
-}
-
-function BookingPortal({ setView, preselectedPlan }) {
-const [formData, setFormData] = useState({
-name: '',
-phone: '',
-age: '',
-gender: 'Male',
-goal: 'General Fitness',
-plan: preselectedPlan || 'Monthly',
-message: ''
-});
-
-const handleInputChange = (e) => {
-const { name, value } = e.target;
-setFormData(prev => ({ ...prev, [name]: value }));
-};
-
-const handleBookingSubmit = (e) => {
-e.preventDefault();
-
-// Build WhatsApp message content (Sending to Owner WhatsApp as requested)
-const baseMsg = `New Gym Booking Inquiry\n\nName: ${formData.name}\nPhone: ${formData.phone}\nAge: ${formData.age || 'N/A'}\nGender: ${formData.gender}\nFitness Goal: ${formData.goal}\nSelected Plan: ${formData.plan}\nMessage: ${formData.message || 'N/A'}`;
-const encodedMsg = encodeURIComponent(baseMsg);
-
-// Redirect to Gym Owner WhatsApp API (+91 8123103040 as requested)
-const waUrl = `https://wa.me/918123103040?text=${encodedMsg}`;
-window.open(waUrl, '_blank');
-};
-
-return (
-<div className="pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
-<div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-<div className="max-w-3xl mx-auto relative z-10">
-
-{/* Navigation back */}
-<button
-onClick={() => setView('landing')}
-className="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-8"
->
-<ArrowLeft size={14} /> Back to main landing page
-</button>
-
-{/* Form container - Premium light aesthetics */}
-<div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-10 shadow-lg">
-<div className="text-center mb-8">
-<span className="text-red-600 text-xs font-black uppercase tracking-widest block mb-1">SECURE CLUB SEAT</span>
-<h2 className="text-3xl font-black uppercase text-slate-900">Elite Booking Registration</h2>
-<p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed font-semibold">
-Fill in your correct vitals data. Submitting will compile a structured booking query and load our WhatsApp Desk instantly.
-</p>
-</div>
-
-<form onSubmit={handleBookingSubmit} className="space-y-6">
-
-<div className="grid sm:grid-cols-2 gap-6">
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Full Name *</label>
-<input
-type="text"
-name="name"
-required
-placeholder="e.g. Rahul Patil"
-value={formData.name}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
-/>
-</div>
-
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Phone Number *</label>
-<input
-type="tel"
-name="phone"
-required
-placeholder="e.g. +91 9876543210"
-value={formData.phone}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
-/>
-</div>
-</div>
-
-{/* Email Address removed: Age and Gender now share a 2-column responsive layout */}
-<div className="grid sm:grid-cols-2 gap-6">
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Age</label>
-<input
-type="number"
-name="age"
-placeholder="e.g. 24"
-value={formData.age}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
-/>
-</div>
-
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Gender</label>
-<select
-name="gender"
-value={formData.gender}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
->
-<option value="Male">Male</option>
-<option value="Female">Female</option>
-<option value="Other">Other</option>
-</select>
-</div>
-</div>
-
-{/* Preferred Timing removed: Primary Goal and Selected Plan share a 2-column responsive layout */}
-<div className="grid sm:grid-cols-2 gap-6">
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Primary Goal</label>
-<select
-name="goal"
-value={formData.goal}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
->
-<option value="General Fitness">General Fitness</option>
-<option value="Muscle Gain">Muscle Gain</option>
-<option value="Fat Shredding">Fat Shredding</option>
-<option value="Cardio Stamina">Cardio Stamina</option>
-<option value="Powerlifting">Powerlifting</option>
-</select>
-</div>
-
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Selected Plan</label>
-<select
-name="plan"
-value={formData.plan}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition"
->
-<option value="Monthly">Monthly (₹999)</option>
-<option value="Quarterly">Quarterly (₹2,499)</option>
-<option value="Annual">Annual (₹8,999)</option>
-<option value="Elite PT Plan">Elite PT Plan (Custom)</option>
-<option value="Free Trial">Free 1-Day Trial (₹0)</option>
-</select>
-</div>
-</div>
-
-<div>
-<label className="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Custom Message / Injuries Log</label>
-<textarea
-rows="4"
-name="message"
-placeholder="Write any queries, past injury logs, or dietary focus points here..."
-value={formData.message}
-onChange={handleInputChange}
-className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition resize-none"
-/>
-</div>
-
-{}
-<div className="pt-4">
-<button
-type="submit"
-className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-xl transition duration-300 text-center flex items-center justify-center gap-2 shadow-[0_10px_15px_rgba(16,185,129,0.2)]"
->
-<MessageCircle size={16} className="fill-white text-emerald-600" />
-Direct WhatsApp Chat
-</button>
-</div>
-
-</form>
-
-</div>
-
-</div>
-</div>
-);
-}
-
-function Footer({ handleOpenBooking, handleOpenBMI, handleOpenPlans, setCurrentView }) {
-return (
-<footer className="bg-slate-50 border-t border-gray-200 pt-20 pb-10 relative overflow-hidden">
-
-{/* Decorative red footer accent */}
-<div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-red-600 to-transparent" />
-
-<div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 pb-16">
-
-{/* Brand Side Column */}
-<div className="md:col-span-5 space-y-6">
-<div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { setCurrentView('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-<div className="bg-red-600 p-2 rounded-xl">
-<Flame size={20} className="text-white fill-white" />
-</div>
-<span className="text-2xl font-black italic tracking-tighter text-slate-900">NXT<span className="text-red-600">LEVEL</span></span>
-</div>
-
-<p className="text-sm text-slate-600 leading-relaxed max-w-sm font-medium">
-Providing high-end fitness spaces, professional personal coaches, and pristine imported resistance hardware to the Belagavi community.
-</p>
-
-<div className="flex gap-4">
-<a href="#" className="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
-<Instagram size={16} />
-</a>
-<a href="#" className="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
-<Facebook size={16} />
-</a>
-<a href="#" className="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
-<Youtube size={16} />
-</a>
-</div>
-</div>
-
-{/* Quick Utilities Column */}
-<div className="md:col-span-3 space-y-4">
-<h4 className="text-xs uppercase tracking-widest font-black text-slate-900">Interactive Modules</h4>
-<ul className="space-y-3 text-sm text-slate-600 font-bold">
-<li>
-<button onClick={() => { setCurrentView('landing'); setTimeout(() => document.getElementById('programs')?.scrollIntoView({ behavior: 'smooth' }), 100); }} className="hover:text-red-600 transition">
-Gym Training Programs
-</button>
-</li>
-<li>
-<button onClick={handleOpenBMI} className="hover:text-red-600 transition">
-Digital BMI Diagnostics
-</button>
-</li>
-<li>
-<button onClick={handleOpenPlans} className="hover:text-red-600 transition">
-Pricing Membership Plans
-</button>
-</li>
-<li>
-<button onClick={() => handleOpenBooking()} className="hover:text-red-600 transition">
-Online Seat Reservation
-</button>
-</li>
-</ul>
-</div>
-
-{/* Address and support info */}
-<div className="md:col-span-4 space-y-4">
-<h4 className="text-xs uppercase tracking-widest font-black text-slate-900">Support & Contact</h4>
-<p className="text-sm text-slate-600 leading-relaxed font-semibold">
-CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi, Karnataka 590001
-</p>
-<div className="text-sm text-slate-600 space-y-1 font-bold">
-<span className="block">Ph: +91 8123103040</span>
-<span className="block">Email: support@nxtlevelfitness.com</span>
-</div>
-</div>
-
-</div>
-
-<div className="max-w-7xl mx-auto px-6 pt-8 border-t border-gray-200/60 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-semibold">
-<p>© 2026 Next Level Fitness (NXT Level). Crafted by Elite Agency.</p>
-<div className="flex gap-6">
-<a href="#" className="hover:text-red-600 transition">Privacy Terms</a>
-<a href="#" className="hover:text-red-600 transition">Club Policies</a>
-</div>
-</div>
-</footer>
-);
-}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Level Fitness (NXT Level) | Belagavi</title>
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- GSAP Animation Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Three.js Visualizer Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Custom styles for 3D card flips */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .preserve-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-[#fcfdfd] text-slate-950 font-sans min-h-screen relative overflow-x-hidden selection:bg-red-600 selection:text-white">
+
+    <!-- Scroll Progress Indicator -->
+    <div id="scroll-progress" class="fixed top-0 left-0 h-1.5 bg-red-600 origin-left z-50 shadow-[0_0_10px_rgba(220,38,38,0.5)] transition-all duration-75" style="width: 0%"></div>
+
+    <!-- Interactive Cursor Glow Background Effect -->
+    <div id="cursor-glow" class="hidden md:block pointer-events-none fixed w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 z-0"></div>
+
+    <!-- Global Glass System Toast Notification -->
+    <div id="toast-notification" class="fixed bottom-24 left-6 z-50 max-w-sm bg-white/95 backdrop-blur-xl border border-gray-200/80 rounded-2xl p-4 shadow-xl flex items-center gap-3.5 translate-y-10 opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-red-600/10 p-2 rounded-xl border border-red-500/20">
+            <i data-lucide="sparkles" class="text-red-600 w-5 h-5"></i>
+        </div>
+        <div>
+            <p class="text-xs text-slate-500 uppercase tracking-widest font-black">NXT Level System</p>
+            <p id="toast-message" class="text-sm text-slate-800 mt-0.5 font-medium"></p>
+        </div>
+        <button onclick="closeToast()" class="text-slate-400 hover:text-slate-900 ml-auto">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- Floating Audio Status and Controls -->
+    <div class="fixed bottom-6 left-6 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-md border border-gray-200 p-2 rounded-full shadow-lg">
+        <button id="sound-btn" onclick="toggleSound()" class="p-2.5 rounded-full bg-red-600 text-white hover:bg-red-700 transition duration-300 shadow-[0_0_10px_rgba(220,38,38,0.3)]">
+            <i id="sound-icon" data-lucide="volume-x" class="w-4 h-4"></i>
+        </button>
+        <div id="sound-wave" class="hidden flex items-end gap-0.5 h-4 pr-3">
+            <div class="w-0.5 bg-red-500 rounded-full h-2 animate-bounce"></div>
+            <div class="w-0.5 bg-red-500 rounded-full h-4 animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-0.5 bg-red-500 rounded-full h-1 animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-0.5 bg-red-500 rounded-full h-3 animate-bounce" style="animation-delay: 0.3s"></div>
+        </div>
+    </div>
+
+    <!-- Sticky Glass Header Bar -->
+    <nav id="navbar" class="fixed top-0 w-full z-40 transition-all duration-300 bg-transparent py-5">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            
+            <!-- Brand Logo Frame -->
+            <div onclick="showView('landing-view')" class="flex items-center gap-2.5 cursor-pointer group">
+                <div class="bg-red-600 p-2 rounded-xl group-hover:rotate-12 transition-transform duration-300 shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+                    <i data-lucide="flame" class="text-white fill-white w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="text-2xl font-black italic tracking-tighter block leading-none text-slate-900">NXT<span class="text-red-600">LEVEL</span></span>
+                    <span class="text-[9px] uppercase tracking-[0.25em] text-slate-500 block font-bold mt-1">Belagavi Gym</span>
+                </div>
+            </div>
+
+            <!-- Scroll Navigation Hyperlinks -->
+            <div id="nav-links-container" class="hidden lg:flex items-center gap-8">
+                <a href="#home" onclick="handleNavScroll(event, 'home')" class="text-sm tracking-wider uppercase font-bold text-red-600 hover:text-red-600 transition duration-300 relative py-1.5">Home</a>
+                <a href="#about" onclick="handleNavScroll(event, 'about')" class="text-sm tracking-wider uppercase font-bold text-slate-600 hover:text-slate-950 transition duration-300 relative py-1.5">About</a>
+                <a href="#programs" onclick="handleNavScroll(event, 'programs')" class="text-sm tracking-wider uppercase font-bold text-slate-600 hover:text-slate-950 transition duration-300 relative py-1.5">Programs</a>
+                <a href="#gallery" onclick="handleNavScroll(event, 'gallery')" class="text-sm tracking-wider uppercase font-bold text-slate-600 hover:text-slate-950 transition duration-300 relative py-1.5">Gallery</a>
+                <a href="#testimonials" onclick="handleNavScroll(event, 'testimonials')" class="text-sm tracking-wider uppercase font-bold text-slate-600 hover:text-slate-950 transition duration-300 relative py-1.5">Testimonials</a>
+                <a href="#contact" onclick="handleNavScroll(event, 'contact')" class="text-sm tracking-wider uppercase font-bold text-slate-600 hover:text-slate-950 transition duration-300 relative py-1.5">Contact</a>
+            </div>
+
+            <!-- Alternative Action Hub Link -->
+            <button id="nav-back-btn" onclick="showView('landing-view')" class="hidden flex items-center gap-2 text-sm uppercase tracking-widest font-black text-slate-500 hover:text-slate-950 transition duration-200">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Return to Home
+            </button>
+
+            <!-- Quick Action Hub Buttons -->
+            <div class="hidden lg:flex items-center gap-4">
+                <button onclick="showView('bmi-view')" class="px-4 py-2 border border-red-500/30 rounded-xl text-xs uppercase tracking-wider font-bold hover:bg-red-500/10 transition duration-300 text-red-600 hover:border-red-600">
+                    BMI Calculator
+                </button>
+                <button onclick="showView('plans-view')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-gray-200 hover:border-gray-300 text-slate-800 rounded-xl text-xs uppercase tracking-wider font-bold transition duration-300">
+                    Memberships
+                </button>
+                <button onclick="showView('booking-view')" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs uppercase tracking-widest font-black rounded-xl transition duration-300 shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+                    Join Club
+                </button>
+            </div>
+
+            <!-- Mobile Drawer Menu Button -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-slate-600 hover:text-slate-900 bg-slate-100 border border-gray-200 rounded-xl transition">
+                <i id="mobile-menu-icon" data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Panel Drawer -->
+    <div id="mobile-menu-drawer" class="hidden fixed top-[72px] left-0 right-0 bg-white/98 backdrop-blur-2xl z-30 border-b border-gray-200 overflow-hidden shadow-lg transition-all duration-300">
+        <div class="p-6 flex flex-col gap-4">
+            <div id="mobile-nav-links" class="flex flex-col gap-4">
+                <a href="#home" onclick="handleMobileNav(event, 'home')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">Home</a>
+                <a href="#about" onclick="handleMobileNav(event, 'about')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">About</a>
+                <a href="#programs" onclick="handleMobileNav(event, 'programs')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">Programs</a>
+                <a href="#gallery" onclick="handleMobileNav(event, 'gallery')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">Gallery</a>
+                <a href="#testimonials" onclick="handleMobileNav(event, 'testimonials')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">Testimonials</a>
+                <a href="#contact" onclick="handleMobileNav(event, 'contact')" class="text-lg font-bold text-slate-800 tracking-wider hover:text-red-600 transition py-1">Contact</a>
+            </div>
+            <button id="mobile-back-btn" onclick="showView('landing-view'); toggleMobileMenu();" class="hidden flex items-center gap-2 text-lg font-bold tracking-wider text-red-600 py-1">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i> Main Landing Page
+            </button>
+            <hr class="border-gray-200 my-2" />
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="showView('bmi-view'); toggleMobileMenu();" class="p-3 bg-slate-50 hover:bg-slate-100 text-center rounded-xl text-xs font-bold uppercase tracking-wider border border-gray-200 text-slate-800">
+                    BMI Calculator
+                </button>
+                <button onclick="showView('plans-view'); toggleMobileMenu();" class="p-3 bg-slate-50 hover:bg-slate-100 text-center rounded-xl text-xs font-bold uppercase tracking-wider border border-gray-200 text-slate-800">
+                    Pricing Plans
+                </button>
+            </div>
+            <button onclick="showView('booking-view'); toggleMobileMenu();" class="w-full p-4 bg-red-600 text-center text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.3)]">
+                Book Free Trial / Join
+            </button>
+        </div>
+    </div>
+
+    <!-- DYNAMIC VIEW: Main Scrolling Landing System -->
+    <main id="landing-view">
+        
+        <!-- Section 1: Cinematic Interactive Hero Presentation -->
+        <section id="home" class="relative min-h-screen flex items-center justify-center pt-24 overflow-hidden bg-white">
+            <div class="absolute inset-0 bg-gradient-to-b from-slate-50 via-white/80 to-[#fcfdfd] z-0 pointer-events-none"></div>
+            <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#fcfdfd] to-transparent z-10 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-[linear-gradient(rgba(220,38,38,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(220,38,38,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none opacity-40"></div>
+
+            <div class="max-w-7xl mx-auto px-6 w-full grid lg:grid-cols-12 gap-12 items-center relative z-20 pt-10">
+                <div class="lg:col-span-7 flex flex-col justify-center text-center lg:text-left">
+                    
+                    <div class="inline-flex items-center gap-2 bg-red-50 border border-red-500/20 px-4 py-2 rounded-full w-fit mx-auto lg:mx-0 mb-6">
+                        <i data-lucide="award" class="text-red-600 w-4 h-4"></i>
+                        <span class="text-xs uppercase tracking-widest text-red-600 font-black">Ranked #1 Gym in Belagavi</span>
+                    </div>
+
+                    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[1.05] mb-6 text-slate-900">
+                        Transform Your Body <br class="hidden sm:inline" />
+                        To The <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 via-red-500 to-slate-900 relative">
+                            NXT Level
+                            <span class="absolute -bottom-2 left-0 w-full h-[3px] bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]"></span>
+                        </span>
+                    </h1>
+
+                    <p class="text-slate-600 text-base sm:text-lg lg:text-xl max-w-xl mb-10 leading-relaxed font-medium mx-auto lg:mx-0">
+                        Elite Gym Experience in Belagavi with Expert Certified Trainers, World-Class Imported Biomechanical Equipment & a Motivating community.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <button onclick="showView('booking-view', 'Monthly')" class="group px-8 py-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 flex items-center justify-center gap-2.5 shadow-[0_10px_25px_rgba(220,38,38,0.35)] transform hover:-translate-y-0.5">
+                            Join Now 
+                            <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+                        </button>
+                        
+                        <button onclick="showView('booking-view', 'Free Trial')" class="px-8 py-5 bg-white border border-gray-200 hover:border-red-500/50 hover:bg-red-50/50 text-slate-900 rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 shadow-sm">
+                            Book Free Trial
+                        </button>
+
+                        <a href="https://wa.me/918123103040?text=Hi!%20I'm%20interested%20in%20visiting%20the%20NXT%20Level%20Fitness%20gym%20facility.%20Please%20guide%20me%20on%20visiting%20timings." target="_blank" rel="noopener noreferrer" class="px-8 py-5 bg-slate-50 border border-emerald-500/20 hover:border-emerald-500/50 hover:bg-emerald-50 rounded-2xl font-black uppercase tracking-widest text-sm transition duration-300 flex items-center justify-center gap-2 text-emerald-600 shadow-sm">
+                            <i data-lucide="message-square" class="w-5 h-5 fill-emerald-600 text-slate-50"></i>
+                            WhatsApp Us
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6 pt-12 mt-12 border-t border-gray-200 max-w-lg mx-auto lg:mx-0">
+                        <div>
+                            <span class="block text-2xl font-black text-red-600">4.9★</span>
+                            <span class="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">Google reviews</span>
+                        </div>
+                        <div>
+                            <span class="block text-2xl font-black text-slate-900">3+ Yrs</span>
+                            <span class="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">In Belagavi</span>
+                        </div>
+                        <div>
+                            <span class="block text-2xl font-black text-slate-900">1000+</span>
+                            <span class="block text-xs uppercase tracking-widest text-slate-500 mt-1 font-bold">Transformations</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ThreeJS Canvas Container Frame -->
+                <div class="lg:col-span-5 w-full h-[320px] sm:h-[450px] bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-3xl overflow-hidden relative shadow-lg">
+                    <div id="three-canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing relative">
+                        <div class="absolute bottom-4 right-4 bg-white/80 backdrop-blur-md border border-gray-200 px-3 py-1.5 rounded-full text-xs text-slate-600 flex items-center gap-1.5 select-none pointer-events-none shadow-sm z-10">
+                            <i data-lucide="sparkles" class="text-red-600 w-3 h-3 animate-pulse"></i>
+                            Interactive 3D Engine Active
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 2: Premium Gym Brand About Panel -->
+        <section id="about" class="py-24 px-6 relative overflow-hidden bg-gradient-to-b from-[#fcfdfd] to-white">
+            <div class="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+            
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Welcome to Elite Fitness</span>
+                    <h2 class="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
+                        We Are <span class="text-red-600">NXT Level</span> Fitness
+                    </h2>
+                    <div class="w-24 h-1 bg-red-600 mx-auto mt-4 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.3)]"></div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-16 items-center">
+                    <div class="space-y-6">
+                        <h3 class="text-2xl sm:text-3xl font-black uppercase leading-snug text-slate-900">
+                            Pushing Your Physical Limits Since Day One
+                        </h3>
+                        
+                        <p class="text-slate-600 leading-relaxed text-sm sm:text-base">
+                            Located on <span class="text-slate-900 font-bold">Ramling Khind Road in Peth, Belagavi</span>, Next Level Fitness (NXT Level Fitness) offers high-caliber personal training, pristine strength conditioning machines, and custom diet structures.
+                        </p>
+
+                        <div class="grid sm:grid-cols-2 gap-4 pt-4">
+                            <div class="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
+                                <div class="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
+                                    <i data-lucide="award" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-sm">Elite Standard</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Certified personal trainers tailored to assist on every movement.</p>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
+                                <div class="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
+                                    <i data-lucide="activity" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-sm">Advanced Machinery</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Fully loaded biomechanical resistance stacks and cardio grids.</p>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
+                                <div class="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
+                                    <i data-lucide="compass" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-sm">Functional Area</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Spacious functional setups for CrossFit, HIIT, and Kettlebell work.</p>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 border border-gray-200/80 rounded-2xl flex items-start gap-3 shadow-sm">
+                                <div class="bg-red-600/10 p-2 rounded-xl border border-red-500/20 text-red-600">
+                                    <i data-lucide="heart" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-slate-900 text-sm">Unbeatable Vibe</h4>
+                                    <p class="text-xs text-slate-500 mt-1">High-tempo audio tracks and absolute motivating energy.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-6">
+                            <button onclick="showView('booking-view', 'Free Trial')" class="px-6 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition duration-300 uppercase tracking-wider text-xs flex items-center gap-2 shadow-md shadow-red-500/15">
+                                Schedule A Visit
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Glowing Info cards side panel -->
+                    <div class="relative">
+                        <div class="h-[400px] w-full bg-gradient-to-br from-red-500/10 via-white to-slate-50 border border-gray-200 rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden shadow-xl">
+                            <div class="absolute top-0 right-0 w-[200px] h-[200px] bg-red-500/5 rounded-full blur-[50px]"></div>
+                            
+                            <div class="flex justify-between items-start">
+                                <span class="text-4xl font-extrabold text-slate-900">NXT<span class="text-red-600">LVL</span></span>
+                                <div class="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1 rounded-full text-xs text-yellow-600 font-bold shadow-sm">
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-yellow-500 text-yellow-500"></i>
+                                    4.9 / 5.0 Google Rating
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="text-xs uppercase tracking-widest text-red-600 font-extrabold mb-1 block">Our Location</span>
+                                <p class="text-xl font-black text-slate-900 mb-2 leading-relaxed">
+                                    CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi
+                                </p>
+                                <p class="text-xs text-slate-500 font-medium">
+                                    Conveniently located with dedicated bike parking and optimal layout ventilation.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="absolute -top-6 -right-6 sm:right-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-lg flex items-center gap-3">
+                            <div class="bg-red-600 p-2.5 rounded-xl text-white">
+                                <i data-lucide="zap" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="block text-xl font-black text-slate-900">5+ Elite</span>
+                                <span class="block text-xs text-slate-500 font-semibold">Coaches On Floor</span>
+                            </div>
+                        </div>
+
+                        <div class="absolute -bottom-6 left-6 bg-white border border-gray-200 p-4 rounded-2xl shadow-lg flex items-center gap-3">
+                            <div class="bg-slate-100 p-2.5 rounded-xl">
+                                <i data-lucide="clock" class="text-red-600 w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="block text-xl font-black text-slate-900">Flexible</span>
+                                <span class="block text-xs text-slate-500 font-semibold">Timings All Week</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Disciplines & Interactive Programs -->
+        <section id="programs" class="py-24 px-6 bg-white relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Our Disciplines</span>
+                    <h2 class="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
+                        Interactive <span class="text-red-600">3D Programs</span>
+                    </h2>
+                    <p class="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
+                        Hover or tap on any discipline program card to explore detailed benefits and lock in custom packages.
+                    </p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Cards loop rendered manually for optimal direct HTML control -->
+                    <div onclick="showView('booking-view', 'Weight Training')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <!-- Front Face -->
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="dumbbell" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Strength</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Weight Training</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Scientific progressive overload focusing on target muscle activation, posture correction and heavy biomechanical lifts.</p>
+                                </div>
+                            </div>
+                            <!-- Back Face -->
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Weight Training</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Focuses on structural posture metrics, customized weight selection guides, and progressive target overload sets.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 2 -->
+                    <div onclick="showView('booking-view', 'CrossFit')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="flame" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Intensity</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">CrossFit</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">High-intensity metabolic conditioning loops using functional bumper weights, kettlebells and plyobox structures.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">CrossFit</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">High-energy metabolic rate testing, bumper lift guidance, and timed challenge rounds.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 3 -->
+                    <div onclick="showView('booking-view', 'Cardio Conditioning')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="activity" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Endurance</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Cardio Conditioning</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Stamina and lung capacity optimization utilizing premium state machine treadmills, spin cycles and rowers.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Cardio Conditioning</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Optimizing heart-rate metrics through endurance grids using cycles, rowers, and dynamic interval setups.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 4 -->
+                    <div onclick="showView('booking-view', 'Zumba & Dance')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="sparkles" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Community</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Zumba & Dance</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Vibrant calorie-burning aerobic sequences hosted by energetic licensed instructors in optimized audio rooms.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Zumba & Dance</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Upbeat calorie shred schedules matching dance steps with rhythmic coordination patterns.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 5 -->
+                    <div onclick="showView('booking-view', 'Muscle Gain')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="award" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Transformation</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Muscle Gain</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Detailed custom hyper-trophy structures paired with accurate weekly macro calculations to track physical gain.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Muscle Gain</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Focused hyper-trophy routines combined with periodic tracking logs of macronutrient intake values.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 6 -->
+                    <div onclick="showView('booking-view', 'Fat Loss Focus')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="target" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Lean</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Fat Loss Focus</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Dynamic thermal deficit combinations matching metabolic trackers for healthy fat shredding targets.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Fat Loss Focus</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Scientific dietary logs combined with calculated low-rest dynamic training structures.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 7 -->
+                    <div onclick="showView('booking-view', 'Personal Training')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="users" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Elite 1-on-1</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Personal Training</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">1-on-1 dedicated attention with customized routine logs, constant progress reports, and premium mentoring.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Personal Training</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Private coach alignments, direct progress metric checks, and weekly dynamic schedule revisions.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Program 8 -->
+                    <div onclick="showView('booking-view', 'Strength Training')" class="group h-[280px] perspective-1000 cursor-pointer">
+                        <div class="relative w-full h-full transition-transform duration-500 preserve-3d group-hover:rotate-y-180">
+                            <div class="absolute inset-0 bg-slate-50 border border-gray-200 rounded-3xl p-6 flex flex-col justify-between backface-hidden hover:border-red-500 transition-colors duration-300 shadow-sm">
+                                <div class="flex justify-between items-start">
+                                    <div class="bg-red-600/10 p-3 rounded-2xl border border-red-500/20 text-red-600 transition duration-300">
+                                        <i data-lucide="compass" class="w-6 h-6"></i>
+                                    </div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black bg-slate-100 border border-gray-200 px-2.5 py-1 rounded-full text-slate-600">Performance</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black uppercase tracking-wide text-slate-900">Strength Training</h3>
+                                    <p class="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">Powerlifting frameworks dedicated to boosting squat, benchpress and deadlift technical capacities safely.</p>
+                                </div>
+                            </div>
+                            <div class="absolute inset-0 bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between rotate-y-180 backface-hidden shadow-md">
+                                <div>
+                                    <span class="text-[10px] tracking-widest uppercase font-black text-red-600 block mb-1">PROGRAM DETAILS</span>
+                                    <h4 class="text-lg font-black uppercase text-slate-900">Strength Training</h4>
+                                    <p class="text-xs text-slate-700 mt-3 leading-relaxed">Safety framework analysis for heavy compound movements, focusing on central nervous system optimization.</p>
+                                </div>
+                                <button class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition duration-200 shadow-sm">Reserve Custom Session</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Class Timings Panel -->
+        <section class="py-16 px-6 bg-slate-50 border-y border-gray-200">
+            <div class="max-w-7xl mx-auto grid lg:grid-cols-12 gap-12 items-center">
+                <div class="lg:col-span-4">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-widest block mb-2">Live Class Schedules</span>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold uppercase text-slate-900">Weekly Timing Grids</h3>
+                    <p class="text-sm text-slate-600 mt-4 leading-relaxed font-medium">
+                        We cater to both early-bird grinders and late-night fitness champions with custom schedules throughout the weekdays.
+                    </p>
+                    <div class="mt-6 flex flex-wrap gap-2">
+                        <span class="px-3.5 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-slate-700 font-bold shadow-sm">Mon - Sat: 5 AM - 10 PM</span>
+                        <span class="px-3.5 py-1.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-600 font-black">Sunday: 7 AM - 12 PM</span>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+                    <div class="grid sm:grid-cols-3 gap-6">
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">05:00 AM - 09:00 AM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Morning Strength</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Heavy Resistance</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">09:30 AM - 11:00 AM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Functional HIIT</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Calorie Shred</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">05:00 PM - 06:00 PM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Zumba Beats</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Cardio Fun</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">06:00 PM - 08:30 PM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Peak Resistance</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Athletic Build</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">08:30 PM - 10:00 PM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Hypertrophy Push</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Muscle Volumizer</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-gray-200/80 hover:border-red-500/20 rounded-2xl transition shadow-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="clock" class="text-red-600 w-3.5 h-3.5"></i>
+                                <span class="text-xs text-slate-500 font-bold">07:00 AM - 11:00 AM</span>
+                            </div>
+                            <h4 class="font-black text-slate-900 text-sm uppercase tracking-wide">Sunday Power</h4>
+                            <p class="text-[10px] text-red-600 font-black tracking-widest uppercase mt-2">Core & Stretch</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Physical Transformations & Image Grid -->
+        <section id="gallery" class="py-24 px-6 bg-gradient-to-b from-[#fcfdfd] to-white">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Proof of Results</span>
+                    <h2 class="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
+                        Elite <span class="text-red-600">Transformations</span>
+                    </h2>
+                    <p class="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
+                        Real hard work yields real results. Check out the spectacular progress of our dedicated Belagavi athletes.
+                    </p>
+                </div>
+
+                <div class="grid lg:grid-cols-12 gap-12 items-center">
+                    <div class="lg:col-span-5">
+                        <h3 class="text-xl sm:text-2xl font-black uppercase text-slate-900 mb-4">Interactive Performance Metric</h3>
+                        <p class="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
+                            Observe metabolic progress and structural alignment upgrades mapped out across standard timeline indexes.
+                        </p>
+
+                        <div class="space-y-4">
+                            <div class="p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
+                                <span class="text-red-600 text-xs font-black block">ATHLETE FOCUS #01</span>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="font-bold text-slate-900">Rahul K. (Belagavi)</span>
+                                    <span class="text-xs text-slate-500 font-bold">12 Weeks Transformation</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
+                                    <div>
+                                        <span class="text-[10px] uppercase text-slate-400 block font-bold">FAT LOSS</span>
+                                        <span class="text-sm font-black text-red-600">-14 Kgs Shred</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase text-slate-400 block font-bold">MUSCLE MASS</span>
+                                        <span class="text-sm font-black text-emerald-600">+4.5 Kgs Gain</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
+                                <span class="text-red-600 text-xs font-black block">ATHLETE FOCUS #02</span>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="font-bold text-slate-900">Sneha M. (Belagavi)</span>
+                                    <span class="text-xs text-slate-500 font-bold">16 Weeks Strength Program</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
+                                    <div>
+                                        <span class="text-[10px] uppercase text-slate-400 block font-bold">SQUAT PUSH</span>
+                                        <span class="text-sm font-black text-emerald-600">45kg to 85kg</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] uppercase text-slate-400 block font-bold">CARDIO STAMINA</span>
+                                        <span class="text-sm font-black text-emerald-600">Doubled</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 grid sm:grid-cols-2 gap-6">
+                        <div class="bg-slate-50 border border-gray-200 rounded-3xl overflow-hidden group shadow-md">
+                            <div class="relative h-64 bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <div class="absolute inset-0 bg-cover bg-center opacity-85 group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600&auto=format&fit=crop')"></div>
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                                <span class="absolute top-4 left-4 bg-white/90 border border-gray-200 text-slate-900 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase shadow-sm">BEFORE</span>
+                                <div class="absolute bottom-4 left-4">
+                                    <span class="text-xs text-red-400 font-bold block">Body Fat Ratio: 28%</span>
+                                    <span class="text-lg font-black uppercase text-white">Low Stamina Stage</span>
+                                </div>
+                            </div>
+                            <div class="relative h-64 bg-slate-100 flex items-center justify-center overflow-hidden border-t border-gray-200">
+                                <div class="absolute inset-0 bg-cover bg-center opacity-85 group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=600&auto=format&fit=crop')"></div>
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                                <span class="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">AFTER 12 WEEKS</span>
+                                <div class="absolute bottom-4 left-4">
+                                    <span class="text-xs text-green-400 font-bold block">Body Fat Ratio: 14%</span>
+                                    <span class="text-lg font-black uppercase text-red-500">Peak Physical Condition</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-3xl overflow-hidden group shadow-md flex flex-col justify-between p-6">
+                            <div>
+                                <div class="inline-flex items-center gap-1 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full text-xs text-red-600 mb-4 font-bold">
+                                    <i data-lucide="zap" class="w-3 h-3"></i> Live Facilities View
+                                </div>
+                                <h4 class="text-2xl font-black uppercase text-slate-900">Pristine Equipment Grid</h4>
+                                <p class="text-sm text-slate-500 mt-2 leading-relaxed">
+                                    Our biomechanical equipment handles extreme loads smoothly, ensuring correct resistance alignment without stressing joint tissues.
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-6">
+                                <div class="h-32 rounded-2xl bg-cover bg-center shadow-inner border border-gray-100" style="background-image: url('https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=300&auto=format&fit=crop')"></div>
+                                <div class="h-32 rounded-2xl bg-cover bg-center shadow-inner border border-gray-100" style="background-image: url('https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=300&auto=format&fit=crop')"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Brand Client Testimonials -->
+        <section id="testimonials" class="py-24 px-6 bg-white border-t border-gray-200">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Athletes Speak</span>
+                    <h2 class="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900">
+                        Elite <span class="text-red-600">Testimonials</span>
+                    </h2>
+                    <p class="text-slate-600 max-w-lg mx-auto mt-4 text-sm sm:text-base font-medium">
+                        Check out honest reviews written by active Belagavi community members training at our facilities.
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="p-8 bg-slate-50 border border-gray-200 rounded-3xl relative flex flex-col justify-between shadow-sm">
+                        <div>
+                            <div class="flex gap-1 text-yellow-500 mb-6">
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                            </div>
+                            <p class="text-slate-700 italic leading-relaxed text-sm sm:text-base font-medium">
+                                "Excellent gym with motivating atmosphere. The imported biomechanics are incredible. Trainers on floor are highly supportive."
+                            </p>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-gray-200/60 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center font-black text-xs text-white uppercase shadow-md">A</div>
+                            <div>
+                                <h4 class="font-black text-slate-900 text-sm">Anish Patil</h4>
+                                <span class="text-[10px] uppercase text-slate-400 tracking-widest block font-extrabold">Active Member</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-8 bg-slate-50 border border-gray-200 rounded-3xl relative flex flex-col justify-between shadow-sm">
+                        <div>
+                            <div class="flex gap-1 text-yellow-500 mb-6">
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                            </div>
+                            <p class="text-slate-700 italic leading-relaxed text-sm sm:text-base font-medium">
+                                "Best trainers and premium equipment. I completed my 14kg body shredding program safely with absolute posture tracking."
+                            </p>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-gray-200/60 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center font-black text-xs text-white uppercase shadow-md">R</div>
+                            <div>
+                                <h4 class="font-black text-slate-900 text-sm">Rohit Deshpande</h4>
+                                <span class="text-[10px] uppercase text-slate-400 tracking-widest block font-extrabold">Active Member</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-8 bg-slate-50 border border-gray-200 rounded-3xl relative flex flex-col justify-between shadow-sm">
+                        <div>
+                            <div class="flex gap-1 text-yellow-500 mb-6">
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                                <i data-lucide="star" class="w-4 h-4 fill-yellow-500 text-yellow-500"></i>
+                            </div>
+                            <p class="text-slate-700 italic leading-relaxed text-sm sm:text-base font-medium">
+                                "Very friendly environment and professional guidance. Dedicated Zumba setups and pristine ventilation spaces are outstanding."
+                            </p>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-gray-200/60 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center font-black text-xs text-white uppercase shadow-md">P</div>
+                            <div>
+                                <h4 class="font-black text-slate-900 text-sm">Priya Hegde</h4>
+                                <span class="text-[10px] uppercase text-slate-400 tracking-widest block font-extrabold">Active Member</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Frequently Asked Queries FAQ -->
+        <section class="py-24 px-6 bg-slate-50/50">
+            <div class="max-w-4xl mx-auto">
+                <div class="text-center mb-16">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">Questions & Answers</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-slate-900">
+                        Frequently Asked <span class="text-red-600">Queries</span>
+                    </h2>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- FAQ Question 1 -->
+                    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition duration-300 hover:border-gray-300/80 shadow-sm">
+                        <button onclick="toggleFAQ(0)" class="w-full p-5 text-left flex justify-between items-center gap-4 text-slate-900 hover:text-red-600 transition duration-300 font-bold">
+                            <span class="font-extrabold text-sm sm:text-base uppercase tracking-wide">What are the exact operating timings of the Belagavi branch?</span>
+                            <i id="faq-icon-0" data-lucide="help-circle" class="w-4.5 h-4.5 shrink-0 transition-transform duration-300 text-slate-400"></i>
+                        </button>
+                        <div id="faq-content-0" class="hidden overflow-hidden border-t border-gray-100 bg-slate-50/50">
+                            <p class="p-5 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+                                We operate Monday through Saturday from 5:00 AM to 10:00 PM without any afternoon breaks. On Sundays, we are open for power hours from 7:00 AM to 12:00 PM.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Question 2 -->
+                    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition duration-300 hover:border-gray-300/80 shadow-sm">
+                        <button onclick="toggleFAQ(1)" class="w-full p-5 text-left flex justify-between items-center gap-4 text-slate-900 hover:text-red-600 transition duration-300 font-bold">
+                            <span class="font-extrabold text-sm sm:text-base uppercase tracking-wide">Do you have dedicated parking for cars and bikes?</span>
+                            <i id="faq-icon-1" data-lucide="help-circle" class="w-4.5 h-4.5 shrink-0 transition-transform duration-300 text-slate-400"></i>
+                        </button>
+                        <div id="faq-content-1" class="hidden overflow-hidden border-t border-gray-100 bg-slate-50/50">
+                            <p class="p-5 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+                                Yes, we have safe, spacious parking grids on-site, fully covered under active surveillance for all our members' convenience.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Question 3 -->
+                    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition duration-300 hover:border-gray-300/80 shadow-sm">
+                        <button onclick="toggleFAQ(2)" class="w-full p-5 text-left flex justify-between items-center gap-4 text-slate-900 hover:text-red-600 transition duration-300 font-bold">
+                            <span class="font-extrabold text-sm sm:text-base uppercase tracking-wide">Can I try out the gym for a day before committing?</span>
+                            <i id="faq-icon-2" data-lucide="help-circle" class="w-4.5 h-4.5 shrink-0 transition-transform duration-300 text-slate-400"></i>
+                        </button>
+                        <div id="faq-content-2" class="hidden overflow-hidden border-t border-gray-100 bg-slate-50/50">
+                            <p class="p-5 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+                                Absolutely! You can easily book a Free 1-Day Trial via our online booking wizard, which will issue a digital visitor pass instantly.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Question 4 -->
+                    <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden transition duration-300 hover:border-gray-300/80 shadow-sm">
+                        <button onclick="toggleFAQ(3)" class="w-full p-5 text-left flex justify-between items-center gap-4 text-slate-900 hover:text-red-600 transition duration-300 font-bold">
+                            <span class="font-extrabold text-sm sm:text-base uppercase tracking-wide">Are personal trainers certified to craft customized nutrition plans?</span>
+                            <i id="faq-icon-3" data-lucide="help-circle" class="w-4.5 h-4.5 shrink-0 transition-transform duration-300 text-slate-400"></i>
+                        </button>
+                        <div id="faq-content-3" class="hidden overflow-hidden border-t border-gray-100 bg-slate-50/50">
+                            <p class="p-5 text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+                                Yes, all floor coaches are internationally certified (including K11 and CrossFit certifications) and are fully trained to guide you through calorie setups and nutrition macros safely.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 7: Contact Info Grid & Google Map Integration -->
+        <section id="contact" class="py-24 px-6 bg-white">
+            <div class="max-w-7xl mx-auto">
+                <div class="grid lg:grid-cols-12 gap-12">
+                    <div class="lg:col-span-5 flex flex-col justify-between">
+                        <div>
+                            <span class="text-red-600 text-xs font-black uppercase tracking-[0.3em] block mb-3">GET IN TOUCH</span>
+                            <h2 class="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight mb-6 text-slate-900">
+                                Visit <span class="text-red-600">The Gym</span> Today
+                            </h2>
+                            <p class="text-slate-600 leading-relaxed text-sm sm:text-base mb-8 font-medium">
+                                Stop by our premier fitness center in Belagavi to experience our top-tier strength infrastructure firsthand. Feel free to reach out via phone, email, or WhatsApp.
+                            </p>
+
+                            <div class="space-y-4">
+                                <div class="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
+                                    <i data-lucide="map-pin" class="text-red-600 shrink-0 mt-1 w-5 h-5"></i>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-sm">Our Physical Location</h4>
+                                        <p class="text-xs text-slate-500 mt-1 font-semibold leading-relaxed">CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi, Karnataka 590001</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
+                                    <i data-lucide="phone" class="text-red-600 shrink-0 mt-1 w-5 h-5"></i>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-sm">Call Or Message Support</h4>
+                                        <p class="text-xs text-slate-500 mt-1 font-semibold">+91 8123103040</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start gap-4 p-4 bg-slate-50 border border-gray-200 rounded-2xl shadow-sm">
+                                    <i data-lucide="mail" class="text-red-600 shrink-0 mt-1 w-5 h-5"></i>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 text-sm">Email Support Team</h4>
+                                        <p class="text-xs text-slate-500 mt-1 font-semibold">support@nxtlevelfitness.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-8">
+                            <h4 class="font-black text-slate-900 text-sm uppercase mb-3">Connect on Socials</h4>
+                            <div class="flex gap-4">
+                                <a href="#" class="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
+                                    <i data-lucide="instagram" class="w-4 h-4"></i>
+                                </a>
+                                <a href="#" class="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
+                                    <i data-lucide="facebook" class="w-4 h-4"></i>
+                                </a>
+                                <a href="#" class="p-3 bg-slate-100 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition duration-300">
+                                    <i data-lucide="youtube" class="w-4 h-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 bg-slate-50 border border-gray-200 rounded-3xl overflow-hidden h-[400px] lg:h-auto min-h-[350px] shadow-md relative">
+                        <iframe 
+                            title="Google Maps Location for NXT Level Fitness"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3838.01235471447!2d74.5097127!3d15.8512142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bbf6164f2fb92bf%3A0x6bfe7c98b68b753!2sCTS%20No.1283%2F1%2C%20Ramling%20Khind%20Rd%2C%20Raviwar%20Peth%2C%20Belagavi%2C%20Karnataka%20590001!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                            class="w-full h-full border-0 grayscale hover:grayscale-0 transition duration-300 opacity-95"
+                            allowfullscreen="" 
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- DYNAMIC VIEW: Smart BMI Calculator Diagnostic Tool -->
+    <section id="bmi-view" class="hidden pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
+        <div class="absolute top-1/4 right-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="max-w-4xl mx-auto relative z-10">
+            <button onclick="showView('landing-view')" class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-8">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to main landing page
+            </button>
+
+            <div class="grid md:grid-cols-12 gap-12 items-start">
+                <div class="md:col-span-6 bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-md">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-widest block mb-1">HEALTH METRIC CHECK</span>
+                    <h2 class="text-2xl sm:text-3xl font-black uppercase text-slate-900 mb-6">BMI Diagnostic Tool</h2>
+
+                    <form id="bmi-form" class="space-y-6">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Weight (Kgs)</label>
+                            <input id="bmi-weight" type="number" required placeholder="e.g. 75" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-medium focus:bg-white focus:outline-none focus:border-red-500 text-sm transition" />
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Height (Cms)</label>
+                            <input id="bmi-height" type="number" required placeholder="e.g. 175" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-medium focus:bg-white focus:outline-none focus:border-red-500 text-sm transition" />
+                        </div>
+                        <button type="submit" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-xs rounded-xl transition duration-300 shadow-[0_10px_15px_rgba(220,38,38,0.2)]">
+                            Compute Score
+                        </button>
+                    </form>
+                </div>
+
+                <div class="md:col-span-6">
+                    <div id="bmi-placeholder-result" class="h-full min-h-[300px] bg-white border border-gray-200 rounded-3xl p-8 flex flex-col justify-center items-center text-center shadow-sm">
+                        <i data-lucide="dumbbell" class="text-slate-300 animate-pulse mb-4 w-12 h-12"></i>
+                        <h3 class="font-extrabold text-lg uppercase tracking-wider text-slate-400">No calculation data yet</h3>
+                        <p class="text-xs text-slate-500 max-w-xs mt-2 leading-relaxed font-semibold">
+                            Enter your exact metric physical values into the input portal on the left to compute diagnostics instantly.
+                        </p>
+                    </div>
+
+                    <div id="bmi-active-result" class="hidden bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-[150px] h-[150px] bg-red-500/5 rounded-full blur-[50px] pointer-events-none"></div>
+                        <span class="text-slate-500 text-xs uppercase tracking-widest block font-extrabold mb-1">METRIC SCORE</span>
+                        <div class="flex items-baseline gap-2 mt-2">
+                            <span id="bmi-result-val" class="text-6xl font-black text-slate-900">--</span>
+                            <span class="text-sm text-slate-500 font-bold">Score</span>
+                        </div>
+
+                        <div class="mt-6">
+                            <div class="flex justify-between items-center text-xs text-slate-500 mb-2 font-bold">
+                                <span>Category:</span>
+                                <span id="bmi-category-val" class="font-black text-slate-900 uppercase tracking-wider">--</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div id="bmi-progress-bar" class="h-full bg-red-600 transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-gray-200/60">
+                            <span class="text-xs uppercase tracking-widest text-red-600 font-black block mb-4">Elite Training Advices</span>
+                            <ul id="bmi-tips-list" class="space-y-3"></ul>
+                        </div>
+
+                        <div class="mt-8">
+                            <button onclick="showView('booking-view')" class="w-full py-3 bg-slate-50 hover:bg-slate-100 border border-gray-200 text-slate-800 rounded-xl text-xs uppercase tracking-wider font-black transition duration-200">
+                                Custom Consultation Booking
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DYNAMIC VIEW: Premium Club Membership Tiers -->
+    <section id="plans-view" class="hidden pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
+        <div class="absolute top-1/4 left-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="max-w-7xl mx-auto relative z-10">
+            <button onclick="showView('landing-view')" class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-12">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to main landing page
+            </button>
+
+            <div class="text-center mb-16">
+                <span class="text-red-600 text-xs font-black uppercase tracking-widest block mb-3">ELITE TIERS</span>
+                <h2 class="text-3xl sm:text-5xl font-black uppercase text-slate-900">Gym Club Membership</h2>
+                <div class="w-20 h-1 bg-red-600 mx-auto mt-4 rounded-full"></div>
+            </div>
+
+            <div class="grid md:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="p-8 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between bg-white border-gray-200 hover:border-gray-300 shadow-md">
+                    <div>
+                        <span class="text-[10px] text-slate-400 uppercase font-extrabold tracking-widest block mb-2">STANDARD</span>
+                        <h3 class="text-2xl font-black uppercase tracking-wide text-slate-900">Monthly</h3>
+                        <div class="flex items-baseline gap-1 mt-4">
+                            <span class="text-4xl font-black text-red-600">₹999</span>
+                            <span class="text-xs text-slate-500 font-bold">/ Period</span>
+                        </div>
+                        <ul class="space-y-3.5 mt-8 pt-6 border-t border-gray-200/60">
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Complete floor access Mon-Sat
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Full strength equipment access
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Lockers & changing room access
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Standard initial posture screening
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-8 pt-6">
+                        <button onclick="showView('booking-view', 'Monthly')" class="w-full py-4 bg-slate-100 hover:bg-red-600 hover:text-white text-slate-800 rounded-xl text-xs uppercase tracking-widest font-black transition duration-300">
+                            Join With Monthly
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="p-8 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between bg-red-50/70 border-red-300 shadow-xl">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black text-[9px] uppercase px-3 py-1 rounded-full tracking-widest shadow-md">POPULAR SAVER</span>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-wide text-slate-900 mt-2">Quarterly</h3>
+                        <div class="flex items-baseline gap-1 mt-4">
+                            <span class="text-4xl font-black text-red-600">₹2,499</span>
+                            <span class="text-xs text-slate-500 font-bold">/ Period</span>
+                        </div>
+                        <ul class="space-y-3.5 mt-8 pt-6 border-t border-gray-200/60">
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Complete standard floor access
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> 1 custom diet consultation log
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Body composition breakdown stats
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Priority booking for zumba grids
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-8 pt-6">
+                        <button onclick="showView('booking-view', 'Quarterly')" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs uppercase tracking-widest font-black transition duration-300 shadow-md shadow-red-500/10">
+                            Join With Quarterly
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="p-8 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between bg-red-50/70 border-red-300 shadow-xl">
+                    <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black text-[9px] uppercase px-3 py-1 rounded-full tracking-widest shadow-md">BEST VALUE TIERS</span>
+                    <div>
+                        <h3 class="text-2xl font-black uppercase tracking-wide text-slate-900 mt-2">Annual</h3>
+                        <div class="flex items-baseline gap-1 mt-4">
+                            <span class="text-4xl font-black text-red-600">₹8,999</span>
+                            <span class="text-xs text-slate-500 font-bold">/ Period</span>
+                        </div>
+                        <ul class="space-y-3.5 mt-8 pt-6 border-t border-gray-200/60">
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Full standard gym access for 1 yr
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Free 4 personalized workout plans
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> 24/7 dedicated trainer assistance
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Full macro-nutrient breakdown log
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-8 pt-6">
+                        <button onclick="showView('booking-view', 'Annual')" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs uppercase tracking-widest font-black transition duration-300 shadow-md shadow-red-500/10">
+                            Join With Annual
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="p-8 rounded-3xl border transition-all duration-300 relative flex flex-col justify-between bg-white border-gray-200 hover:border-gray-300 shadow-md">
+                    <div>
+                        <span class="text-[10px] text-slate-400 uppercase font-extrabold tracking-widest block mb-2">1-ON-1 PREMIUM</span>
+                        <h3 class="text-2xl font-black uppercase tracking-wide text-slate-900">Elite PT Plan</h3>
+                        <div class="flex items-baseline gap-1 mt-4">
+                            <span class="text-4xl font-black text-red-600">Custom</span>
+                        </div>
+                        <ul class="space-y-3.5 mt-8 pt-6 border-t border-gray-200/60">
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Private dedicated certified trainer
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Daily body vitals metric checking
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> 100% custom detailed meal logs
+                            </li>
+                            <li class="flex gap-2 items-start text-xs text-slate-700 font-semibold leading-relaxed">
+                                <i data-lucide="check-circle" class="text-red-600 shrink-0 w-4 h-4 mt-0.5"></i> Guaranteed body transformation scale
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="mt-8 pt-6">
+                        <button onclick="showView('booking-view', 'Elite PT Plan')" class="w-full py-4 bg-slate-100 hover:bg-red-600 hover:text-white text-slate-800 rounded-xl text-xs uppercase tracking-widest font-black transition duration-300">
+                            Join With Elite PT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DYNAMIC VIEW: Elite Booking Registration & Secure Seat Reservation -->
+    <section id="booking-view" class="hidden pt-24 pb-20 px-6 min-h-screen relative overflow-hidden bg-slate-50">
+        <div class="absolute top-1/4 left-1/4 w-[250px] h-[250px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="max-w-3xl mx-auto relative z-10">
+            <button onclick="showView('landing-view')" class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500 hover:text-slate-900 font-extrabold transition duration-200 mb-8">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to main landing page
+            </button>
+
+            <div class="bg-white border border-gray-200 rounded-3xl p-6 sm:p-10 shadow-lg">
+                <div class="text-center mb-8">
+                    <span class="text-red-600 text-xs font-black uppercase tracking-widest block mb-1">SECURE CLUB SEAT</span>
+                    <h2 class="text-3xl font-black uppercase text-slate-900">Elite Booking Registration</h2>
+                    <p class="text-xs text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed font-semibold">
+                        Fill in your correct vitals data. Submitting will compile a structured booking query and load our WhatsApp Desk instantly.
+                    </p>
+                </div>
+
+                <form id="booking-form" class="space-y-6">
+                    <div class="grid sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Full Name *</label>
+                            <input id="booking-name" type="text" required placeholder="e.g. Rahul Patil" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition" />
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Phone Number *</label>
+                            <input id="booking-phone" type="tel" required placeholder="e.g. +91 8123103040" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition" />
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Your Age</label>
+                            <input id="booking-age" type="number" placeholder="e.g. 24" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition" />
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Gender</label>
+                            <select id="booking-gender" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Primary Goal</label>
+                            <select id="booking-goal" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition">
+                                <option value="General Fitness">General Fitness</option>
+                                <option value="Muscle Gain">Muscle Gain</option>
+                                <option value="Fat Shredding">Fat Shredding</option>
+                                <option value="Cardio Stamina">Cardio Stamina</option>
+                                <option value="Powerlifting">Powerlifting</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Selected Plan</label>
+                            <select id="booking-plan" class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 font-bold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition">
+                                <option value="Monthly">Monthly (₹999)</option>
+                                <option value="Quarterly">Quarterly (₹2,499)</option>
+                                <option value="Annual">Annual (₹8,999)</option>
+                                <option value="Elite PT Plan">Elite PT Plan (Custom)</option>
+                                <option value="Free Trial">Free 1-Day Trial (₹0)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-slate-600 mb-2 font-black">Custom Message / Injuries Log</label>
+                        <textarea id="booking-message" rows="4" placeholder="Write any queries, past injury logs, or dietary focus points here..." class="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl text-slate-950 placeholder:text-slate-400 font-semibold focus:bg-white focus:outline-none focus:border-red-500 text-sm transition resize-none"></textarea>
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-xl transition duration-300 text-center flex items-center justify-center gap-2 shadow-[0_10px_15px_rgba(16,185,129,0.2)]">
+                            <i data-lucide="message-square" class="fill-white text-emerald-600 w-4 h-4"></i>
+                            Direct WhatsApp Chat
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sticky Floating Action Hub Group -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        <button onclick="scrollToTop()" class="p-3 bg-white/90 hover:bg-slate-100 text-slate-600 hover:text-slate-900 rounded-full border border-gray-200 shadow-md transition flex items-center justify-center" title="Scroll to Top">
+            <i data-lucide="arrow-up" class="w-[18px] h-[18px]"></i>
+        </button>
+
+        <a href="https://wa.me/918123103040?text=Hi%20NXT%20Level%20Fitness!%20I'd%20love%20to%20know%20more%20about%20your%20membership%20plans%20and%20class%20schedules." target="_blank" rel="noopener noreferrer" class="bg-green-500 hover:bg-green-600 p-4 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:scale-110 transition-transform flex items-center justify-center animate-bounce text-white" title="Connect on WhatsApp">
+            <i data-lucide="message-circle" class="fill-white text-green-500 w-6 h-6"></i>
+        </a>
+    </div>
+
+    <!-- Professional Premium Gym Footer -->
+    <footer class="bg-slate-50 border-t border-gray-200 pt-20 pb-10 relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-red-600 to-transparent"></div>
+        
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 pb-16">
+            <div class="md:col-span-5 space-y-6">
+                <div class="flex items-center gap-2.5 cursor-pointer" onclick="showView('landing-view')">
+                    <div class="bg-red-600 p-2 rounded-xl">
+                        <i data-lucide="flame" class="text-white fill-white w-5 h-5"></i>
+                    </div>
+                    <span class="text-2xl font-black italic tracking-tighter text-slate-900">NXT<span class="text-red-600">LEVEL</span></span>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed max-w-sm font-medium">
+                    Providing high-end fitness spaces, professional personal coaches, and pristine imported resistance hardware to the Belagavi community.
+                </p>
+                <div class="flex gap-4">
+                    <a href="#" class="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
+                        <i data-lucide="instagram" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#" class="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
+                        <i data-lucide="facebook" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#" class="p-2.5 bg-white border border-gray-200 hover:bg-red-600 hover:text-white rounded-xl text-slate-500 transition">
+                        <i data-lucide="youtube" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="md:col-span-3 space-y-4">
+                <h4 class="text-xs uppercase tracking-widest font-black text-slate-900">Interactive Modules</h4>
+                <ul class="space-y-3 text-sm text-slate-600 font-bold">
+                    <li><button onclick="showView('landing-view'); setTimeout(() => smoothScrollTo('programs'), 200);" class="hover:text-red-600 transition">Gym Training Programs</button></li>
+                    <li><button onclick="showView('bmi-view')" class="hover:text-red-600 transition">Digital BMI Diagnostics</button></li>
+                    <li><button onclick="showView('plans-view')" class="hover:text-red-600 transition">Pricing Membership Plans</button></li>
+                    <li><button onclick="showView('booking-view')" class="hover:text-red-600 transition">Online Seat Reservation</button></li>
+                </ul>
+            </div>
+
+            <div class="md:col-span-4 space-y-4">
+                <h4 class="text-xs uppercase tracking-widest font-black text-slate-900">Support & Contact</h4>
+                <p class="text-sm text-slate-600 leading-relaxed font-semibold">
+                    CTS No.1283/1, Ramling Khind Rd, Raviwar Peth, Belagavi, Karnataka 590001
+                </p>
+                <div class="text-sm text-slate-600 space-y-1 font-bold">
+                    <span class="block">Ph: +91 8123103040</span>
+                    <span class="block">Email: support@nxtlevelfitness.com</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-6 pt-8 border-t border-gray-200/60 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-semibold">
+            <p>© 2026 Next Level Fitness (NXT Level). Crafted by Elite Agency.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-red-600 transition">Privacy Terms</a>
+                <a href="#" class="hover:text-red-600 transition">Club Policies</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- PRIMARY ENGINE SCRIPT -->
+    <script>
+        // Init Lucide Icons globally
+        lucide.createIcons();
+
+        // Global sound toggle simulation
+        let soundEnabled = false;
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-btn');
+            const wave = document.getElementById('sound-wave');
+            const icon = document.getElementById('sound-icon');
+
+            if (soundEnabled) {
+                wave.classList.remove('hidden');
+                wave.classList.add('flex');
+                triggerToast("Ambient synth wave sequence activated!");
+            } else {
+                wave.classList.remove('flex');
+                wave.classList.add('hidden');
+                triggerToast("Ambient system sound muted.");
+            }
+            icon.setAttribute('data-lucide', soundEnabled ? 'volume-2' : 'volume-x');
+            lucide.createIcons();
+        }
+
+        // Display Custom System Toast Alert
+        function triggerToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.innerText = msg;
+            
+            gsap.to(toast, { y: 0, opacity: 1, pointerEvents: 'auto', duration: 0.4, ease: 'power2.out' });
+            
+            setTimeout(() => {
+                closeToast();
+            }, 4000);
+        }
+
+        function closeToast() {
+            const toast = document.getElementById('toast-notification');
+            gsap.to(toast, { y: 10, opacity: 0, pointerEvents: 'none', duration: 0.3, ease: 'power2.in' });
+        }
+
+        // Active Navigation Tracker
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY;
+            const navbar = document.getElementById('navbar');
+            const progress = document.getElementById('scroll-progress');
+
+            // Scroll bar calculation
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrolledPct = (scrollPos / docHeight) * 100;
+            progress.style.width = scrolledPct + '%';
+
+            // Navbar visual layout change on scroll
+            if (scrollPos > 40) {
+                navbar.classList.remove('bg-transparent', 'py-5');
+                navbar.classList.add('bg-white/95', 'backdrop-blur-lg', 'py-3', 'border-b', 'border-gray-200/80', 'shadow-md');
+            } else {
+                navbar.classList.remove('bg-white/95', 'backdrop-blur-lg', 'py-3', 'border-b', 'border-gray-200/80', 'shadow-md');
+                navbar.classList.add('bg-transparent', 'py-5');
+            }
+        });
+
+        // Interactive mouse pointer shadow element placement tracker
+        window.addEventListener('mousemove', (e) => {
+            const glow = document.getElementById('cursor-glow');
+            glow.style.left = e.clientX + 'px';
+            glow.style.top = e.clientY + 'px';
+        });
+
+        // Dynamic multi-screen single page framework
+        function showView(viewId, preselectedPlan = '') {
+            const views = ['landing-view', 'bmi-view', 'plans-view', 'booking-view'];
+            
+            views.forEach(v => {
+                const el = document.getElementById(v);
+                if (v === viewId) {
+                    el.classList.remove('hidden');
+                    gsap.fromTo(el, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power1.out' });
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Adjust Header Navbar buttons
+            const navLinks = document.getElementById('nav-links-container');
+            const backBtn = document.getElementById('nav-back-btn');
+            const mobNav = document.getElementById('mobile-nav-links');
+            const mobBack = document.getElementById('mobile-back-btn');
+
+            if (viewId === 'landing-view') {
+                navLinks.classList.remove('hidden');
+                navLinks.classList.add('flex');
+                backBtn.classList.add('hidden');
+
+                mobNav.classList.remove('hidden');
+                mobBack.classList.add('hidden');
+            } else {
+                navLinks.classList.remove('flex');
+                navLinks.classList.add('hidden');
+                backBtn.classList.remove('hidden');
+
+                mobNav.classList.add('hidden');
+                mobBack.classList.remove('hidden');
+            }
+
+            // Set dynamic forms values
+            if (viewId === 'booking-view') {
+                const planSelect = document.getElementById('booking-plan');
+                if (preselectedPlan) {
+                    planSelect.value = preselectedPlan;
+                }
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Navigation scrolling helper routines
+        function smoothScrollTo(id) {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function handleNavScroll(event, id) {
+            event.preventDefault();
+            smoothScrollTo(id);
+        }
+
+        function handleMobileNav(event, id) {
+            event.preventDefault();
+            toggleMobileMenu();
+            smoothScrollTo(id);
+        }
+
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Toggle Mobile Navigation Drawer
+        let mobileOpen = false;
+        function toggleMobileMenu() {
+            mobileOpen = !mobileOpen;
+            const drawer = document.getElementById('mobile-menu-drawer');
+            const icon = document.getElementById('mobile-menu-icon');
+
+            if (mobileOpen) {
+                drawer.classList.remove('hidden');
+                gsap.fromTo(drawer, { height: 0, opacity: 0 }, { height: 'auto', opacity: 1, duration: 0.3, ease: 'power2.out' });
+                icon.setAttribute('data-lucide', 'x');
+            } else {
+                gsap.to(drawer, { height: 0, opacity: 0, duration: 0.25, ease: 'power2.in', onComplete: () => drawer.classList.add('hidden') });
+                icon.setAttribute('data-lucide', 'menu');
+            }
+            lucide.createIcons();
+        }
+
+        // FAQ accordion management
+        function toggleFAQ(idx) {
+            const content = document.getElementById(`faq-content-${idx}`);
+            const icon = document.getElementById(`faq-icon-${idx}`);
+            const isHidden = content.classList.contains('hidden');
+
+            // Close all active FAQs first for accordion style
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`faq-content-${i}`).classList.add('hidden');
+                document.getElementById(`faq-icon-${i}`).style.transform = 'rotate(0deg)';
+                document.getElementById(`faq-icon-${i}`).classList.remove('text-red-600');
+            }
+
+            if (isHidden) {
+                content.classList.remove('hidden');
+                gsap.fromTo(content, { height: 0, opacity: 0 }, { height: 'auto', opacity: 1, duration: 0.25, ease: 'power1.out' });
+                icon.style.transform = 'rotate(180deg)';
+                icon.classList.add('text-red-600');
+            }
+        }
+
+        // Working BMI Calculator Diagnostic Tool Submit
+        document.getElementById('bmi-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const wInput = document.getElementById('bmi-weight');
+            const hInput = document.getElementById('bmi-height');
+            const weight = parseFloat(wInput.value);
+            const height = parseFloat(hInput.value) / 100;
+
+            if (!weight || !height) return;
+
+            const score = (weight / (height * height)).toFixed(1);
+            document.getElementById('bmi-result-val').innerText = score;
+
+            let category = '';
+            let tips = [];
+            let barColor = 'bg-gray-400';
+            const progress = (score / 40) * 100;
+
+            if (score < 18.5) {
+                category = 'Underweight';
+                barColor = 'bg-sky-400';
+                tips = [
+                    "Focus on calorie-dense healthy foods like nuts, avocados, and complex carbs.",
+                    "Enroll in our customized Muscle Gain weight program.",
+                    "Prioritize strength resistance workouts to build healthy muscle volume."
+                ];
+            } else if (score >= 18.5 && score < 24.9) {
+                category = 'Normal';
+                barColor = 'bg-emerald-500';
+                tips = [
+                    "Outstanding! Maintain consistency in your daily fitness habits.",
+                    "Join our CrossFit and powerlifting program to upgrade physical endurance.",
+                    "Focus on a balanced protein intake matching daily exertion."
+                ];
+            } else if (score >= 25 && score < 29.9) {
+                category = 'Overweight';
+                barColor = 'bg-yellow-500';
+                tips = [
+                    "Incorporate intense HIIT cardio circuits inside our functional gym areas.",
+                    "Aim for a progressive caloric deficit backed by structural training.",
+                    "Limit simple carbs and sugars while optimizing hydration."
+                ];
+            } else {
+                category = 'Obese';
+                barColor = 'bg-red-500';
+                tips = [
+                    "Consult our certified trainers to formulate safe, non-impact initial movements.",
+                    "Prioritize joint-safe low-impact cardio work matched with structural diet guidelines.",
+                    "Track weekly progression changes accurately with metabolic metrics."
+                ];
+            }
+
+            document.getElementById('bmi-category-val').innerText = category;
+            
+            // Adjust result bar elements
+            const bar = document.getElementById('bmi-progress-bar');
+            bar.className = `h-full ${barColor} transition-all duration-500`;
+            bar.style.width = Math.min(progress, 100) + '%';
+
+            // Build tips lists
+            const tipsContainer = document.getElementById('bmi-tips-list');
+            tipsContainer.innerHTML = '';
+            tips.forEach(t => {
+                const li = document.createElement('li');
+                li.className = "flex gap-2.5 items-start text-xs text-slate-700 font-semibold leading-relaxed";
+                li.innerHTML = `<i data-lucide="check" class="text-red-600 shrink-0 mt-0.5 w-4 h-4"></i><span>${t}</span>`;
+                tipsContainer.appendChild(li);
+            });
+
+            // Swap Placeholder View
+            document.getElementById('bmi-placeholder-result').classList.add('hidden');
+            const resultBox = document.getElementById('bmi-active-result');
+            resultBox.classList.remove('hidden');
+
+            lucide.createIcons();
+            gsap.fromTo(resultBox, { scale: 0.95, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3 });
+        });
+
+        // Working Booking Form Registration Submit
+        document.getElementById('booking-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('booking-name').value;
+            const phone = document.getElementById('booking-phone').value;
+            const age = document.getElementById('booking-age').value;
+            const gender = document.getElementById('booking-gender').value;
+            const goal = document.getElementById('booking-goal').value;
+            const plan = document.getElementById('booking-plan').value;
+            const msg = document.getElementById('booking-message').value;
+
+            // Compile WhatsApp structured message inquiry text
+            const textMsg = `New Gym Booking Inquiry\n\nName: ${name}\nPhone: ${phone}\nAge: ${age || 'N/A'}\nGender: ${gender}\nFitness Goal: ${goal}\nSelected Plan: ${plan}\nMessage: ${msg || 'N/A'}`;
+            const queryEncoded = encodeURIComponent(textMsg);
+
+            // Directly redirect to Club Owner's WhatsApp
+            const waTarget = `https://wa.me/918123103040?text=${queryEncoded}`;
+            window.open(waTarget, '_blank');
+        });
+
+        // Custom interactive ThreeJS 3D Dumbbell Renderer
+        window.onload = function () {
+            const container = document.getElementById('three-canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.z = 8;
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const dumbbellGroup = new THREE.Group();
+
+            // Dumbbell Bar Shaft
+            const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, 3.2, 32);
+            const shaftMat = new THREE.MeshStandardMaterial({ 
+                color: 0x475569,
+                metalness: 0.9, 
+                roughness: 0.15 
+            });
+            const shaft = new THREE.Mesh(shaftGeom, shaftMat);
+            shaft.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(shaft);
+
+            // Materials
+            const weightMat = new THREE.MeshStandardMaterial({ 
+                color: 0x334155, 
+                metalness: 0.8, 
+                roughness: 0.3 
+            });
+            const rimMat = new THREE.MeshStandardMaterial({
+                color: 0xdc2626,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+
+            // Dumbbell Left heavy plates
+            const leftPlate1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 32), weightMat);
+            leftPlate1.position.x = -1.1;
+            leftPlate1.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(leftPlate1);
+
+            const leftPlate2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.25, 32), rimMat);
+            leftPlate2.position.x = -1.4;
+            leftPlate2.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(leftPlate2);
+
+            const leftCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16), shaftMat);
+            leftCollar.position.x = -1.6;
+            leftCollar.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(leftCollar);
+
+            // Dumbbell Right heavy plates
+            const rightPlate1 = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 32), weightMat);
+            rightPlate1.position.x = 1.1;
+            rightPlate1.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(rightPlate1);
+
+            const rightPlate2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.25, 32), rimMat);
+            rightPlate2.position.x = 1.4;
+            rightPlate2.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(rightPlate2);
+
+            const rightCollar = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.15, 16), shaftMat);
+            rightCollar.position.x = 1.6;
+            rightCollar.rotation.z = Math.PI / 2;
+            dumbbellGroup.add(rightCollar);
+
+            scene.add(dumbbellGroup);
+
+            // Dynamic Particle Field Elements
+            const count = 120;
+            const geom = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 12;
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const pMat = new THREE.PointsMaterial({
+                color: 0xdc2626,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.6
+            });
+            const field = new THREE.Points(geom, pMat);
+            scene.add(field);
+
+            // Lighting Configuration
+            const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight.position.set(5, 5, 5);
+            scene.add(dirLight);
+
+            const redSpot = new THREE.SpotLight(0xdc2626, 6, 15, Math.PI / 6, 0.5, 1);
+            redSpot.position.set(-3, 3, 4);
+            scene.add(redSpot);
+
+            // Interactive Mouse Follow Coordinates
+            let mouseX = 0;
+            let mouseY = 0;
+            container.addEventListener('mousemove', (event) => {
+                const rect = container.getBoundingClientRect();
+                mouseX = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+                mouseY = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+            });
+
+            // Standard render loops
+            function animate() {
+                requestAnimationFrame(animate);
+
+                dumbbellGroup.rotation.y += 0.012;
+                dumbbellGroup.rotation.x += 0.003;
+
+                // Mouse interaction effects
+                dumbbellGroup.rotation.y += mouseX * 0.02;
+                dumbbellGroup.rotation.z = mouseY * 0.3;
+
+                field.rotation.y += 0.001;
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Resize viewport events
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+    </script>
+</body>
+</html>
